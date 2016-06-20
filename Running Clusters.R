@@ -43,13 +43,23 @@ plot(ratios.2 ~ c(1:10))
 
 # Extract cluster id's for each pitch
 library(cluster)
-baseball.pam <- pam(cluster.data.2, 3)
+baseball.pam <- pam(cluster.data.2, 2)
 pitches.clean$cluster_id <- baseball.pam$clustering
+table(pitches.clean$pitch_type, pitches.clean$cluster_id)
 
-# pitches.clean has all the pitching data, as well as the cluster id's
+# Visualze clusters/pitch types
+table(pitches.clean$pitch_type, pitches.clean$cluster_id)
 
+# Organize the play outcomes into 5 play results
+pitches.clean$des <- as.factor(pitches.clean$des)
+levels(pitches.clean$des) <- c("Ball", "Ball", "Called Strike", "Foul", "Foul", "Foul", "Foul", "Ball", "In play, no out", "In play, out", "In play, no out", "Swinging Stirke")
 
+# Seperate pitches out by cluster
+cluster.1 <- pitches.clean %>% filter(cluster_id == 1)
+cluster.2 <- pitches.clean %>% filter(cluster_id == 2)
 
-
+# See what proportion is gucci
+prop.table(table(cluster.1$cluster_id, cluster.1$des))
+prop.table(table(cluster.2$cluster_id, cluster.2$des))
 
 
