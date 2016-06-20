@@ -21,6 +21,8 @@ cluster.data.2 <- pitches.clean %>% select(start_speed, end_speed, pfx_x, pfx_z,
 
 cluster.data.2 <- na.omit(cluster.data.2)
 
+cluster.data.2 <- scale(cluster.data.2)
+
 set.seed(7)
 ratios.2 = sapply(1:10, function(k) {
   with(kmeans(cluster.data.2, k, nstart = 10), betweenss / totss)
