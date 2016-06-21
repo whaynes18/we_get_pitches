@@ -1,5 +1,7 @@
 library(shiny)
 library(shinythemes)
+library(kknn)
+
 
 # Define UI for application
 ui <- shinyUI(fluidPage(theme = shinytheme("Spacelab"),
@@ -10,6 +12,10 @@ ui <- shinyUI(fluidPage(theme = shinytheme("Spacelab"),
                         # Sidebar with a slider input for number of bins 
                         sidebarLayout(
                           sidebarPanel(
+                            actionButton('fastball', 'fastball'),
+                            actionButton('curve', 'curveball'),
+                            actionButton('slider', 'slider'),
+                            actionButton('change', 'change-up'),
                             sliderInput(inputId = "speed",
                                         "Pitch Speed:",
                                         min = 50,
@@ -56,6 +62,7 @@ ui <- shinyUI(fluidPage(theme = shinytheme("Spacelab"),
                           
                           mainPanel(
                             plotOutput("pitch_plot")
+                         
                           )
                         )
 ))
@@ -67,6 +74,14 @@ server <- shinyServer(function(input, output) {
   #put braces around code ({ }) to pass code as unified block
   #observeEvent(input$click, {code})
   v <- reactiveValues(data = 5)
+  
+  ##################################################################
+  
+  speed_new <- reactiveValues(data = 85)
+  breakangle_new <- reactiveValues(data = 2)
+  breaklength_new <- reactiveValues(data = 6)
+  spin_new <- reactiveValues(data = 2000)
+  
   
   ##################################################################
   
@@ -123,13 +138,55 @@ server <- shinyServer(function(input, output) {
   })
   
   ########################################################  
+  ## Default pitch values
+  
+  observeEvent(input$fastball, {
+    v$data <- 14
+  })
+  
+  observeEvent(input$curve, {
+    v$data <- 14
+  })
+  
+  observeEvent(input$slider, {
+    v$data <- 14
+  })
+  
+  observeEvent(input$change, {
+    v$data <- 14
+    
+    })
+  
+  ########################################################  
+  
+  
+  observeEvent(input$speed, {
+    speed_new$data <- input$speed
+  })
+  
+  observeEvent(input$break_angle, {
+    breakangle_new$data <- input$break_angle
+  })
+  
+  observeEvent(input$break_length, {
+    breaklength_new$data <- input$break_length
+  })
+  
+  observeEvent(input$spin_rate, {
+    spin_new$data <- input$spin_rate
+  })
+  
+  
+  ########################################################  
   #The call for data
   #speed, break_angle, break_length, spin_rate, v$data
   
-  test.pitch <- reactive({predict(scale.train.object, data.frame("start_speed" = input$speed, "break_angle" = input$break_angle, "break_length" = input$break_length,
-                                     "spin_rate" = input$spin_rate))})
+  ##test.pitch <- reactive({predict(scale.train.object, data.frame("start_speed" = input$speed, "break_angle" = input$break_angle, "break_length" = input$break_length,
+    ##                                 "spin_rate" = input$spin_rate))})
+  
+  test.pitch <- reactive({predict(scale.train.object, data.frame("start_speed" = speed_new$data, "break_angle" = breakangle_new$data, "break_length" = breaklength_new$data,
+                                                                "spin_rate" = spin_new$data))})
  
-  library(kknn)
   
   #test.data <- predict.preProcess(train.preProcess.object, test.pitch())
   
