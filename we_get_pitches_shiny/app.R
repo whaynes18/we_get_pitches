@@ -141,20 +141,31 @@ server <- shinyServer(function(input, output) {
   ## Default pitch values
   
   observeEvent(input$fastball, {
-    v$data <- 14
+    speed_new$data <- 12
+    breaklength_new$data <- 12
+    breakangle_new$data <- 12
+    spin_new$data <- 12
   })
   
   observeEvent(input$curve, {
-    v$data <- 14
-  })
+    speed_new$data <- 12
+    breaklength_new$data <- 12
+    breakangle_new$data <- 12
+    spin_new$data <- 12  
+    })
   
   observeEvent(input$slider, {
-    v$data <- 14
-  })
+    speed_new$data <- 12
+    breaklength_new$data <- 12
+    breakangle_new$data <- 12
+    spin_new$data <- 12
+    })
   
   observeEvent(input$change, {
-    v$data <- 14
-    
+    speed_new$data <- 12
+    breaklength_new$data <- 12
+    breakangle_new$data <- 12
+    spin_new$data <- 12    
     })
   
   ########################################################  
