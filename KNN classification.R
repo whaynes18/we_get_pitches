@@ -50,6 +50,7 @@ pitches.model.data <- pitches.clean %>% select(start_speed, end_speed, pfx_x, pf
 pitches.model.data <- na.omit(pitches.model.data)
 
 pitches.model.data[,1:12] <- scale(pitches.model.data[,1:12])
+pitches.model.data <- na.omit(pitches.model.data)
 
 index <- createDataPartition(y = pitches.model.data$end, p=0.8)[[1]]
 pitches.train <- pitches.model.data[index,]
@@ -60,20 +61,20 @@ pitches.test <- na.omit(pitches.test)
 
 # Use for kknn
 kknn.all <- kknn(pitches.train$end ~ ., train = filter(pitches.train)[-c(13,14)], test = pitches.test[-c(13,14)], k = 18)
-
 kknn.all$prob
 
+# Use kknn for a zone
 kknn.zone.4 <- kknn(filter(pitches.train, zone == 4)$end ~ ., train = filter(pitches.train, zone == 4)[-c(13,14)], test = filter(pitches.test, zone ==4)[-c(13,14)], k = 18)
-
 kknn.zone.4$prob
 
-zones <- c(1:9, 11:14)
-for(x in zones) {
-  assign(paste("kknn.zone.", x, sep=""), kknn(filter(pitches.train, zone == 4)$end ~ ., train = filter(pitches.train, zone == 4)[-c(13,14)], test = filter(pitches.test, zone ==4)[-c(13,14)], k = 18))
+# Write a function to generate for a specific zone, pitch
+attempt.zone <- 2
+attempt.pitch <- pitches.clean[445,]
+
+the.big.guy <- function(zone, pitch) {
+  model <- kknn(filter(pitches.model.data, zone == zone_id)$end ~ ., train = filter(pitches.model.data, zone == zone_id)[-c(13,14)], test = pitch, k = 18)
+  barplot(model$prob)
 }
-
-kknn.zone.2
-
 
 ## Old Method using kkn (no probabilites)
 # kth nearest neighbor on pitch outcomes
@@ -113,6 +114,3 @@ zones <- c(1:9, 11:14)
 for(x in zones) {
   outcomes_list[[x]] <- knn(filter(pitches.train, zone == x)[-c(13,14)], filter(pitches.test, zone == x)[-c(13,14)], filter(pitches.train, zone == x)$des, k = 14)
 }
-
-
-
