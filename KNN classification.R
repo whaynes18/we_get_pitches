@@ -4,12 +4,13 @@ library(magrittr)
 library(plyr)
 library(cluster)
 library(caret)
+library(kknn)
 
-data("pitches")
-
-dat <- scrape(start = "2012-06-03", end = "2012-06-03")
+# Load data (from pitches and the API)
+dat <- scrape(start = "2016-06-18", end = "2016-06-19")
 pitchFX <- plyr::join(dat$atbat, dat$pitch, by = c("num", "url"), type = "inner")
 
+# Clean data
 pitches.clean <- pitchFX
 pitches.clean$break_y <- as.numeric(pitches.clean$break_y)
 pitches.clean$break_angle <- as.numeric(pitches.clean$break_angle)
@@ -22,41 +23,72 @@ pitches.clean$des <- as.factor(pitches.clean$des)
 levels(pitches.clean$des) <- c("Ball", "Ball", "Called Strike", "Foul", "Foul", "Foul", "Foul", "Ball", "In play, no out", "In play, out", "In play, no out", "Swinging Strike", "Swinging Strike", "Swinging Strike")
 pitches.clean$des <- as.factor(pitches.clean$des)
 
-# kth nearest neighbor on pitch outcomes
-pitches.model.data <- pitches.clean %>% select(start_speed, end_speed, pfx_x, pfx_z, vx0, vy0, vz0, break_y, break_angle, break_length, spin_dir, spin_rate, zone, des)
+pitches.clean$idNum <- sample(1:nrow(pitches.clean), nrow(pitches.clean))
 
+
+# Add Outcome Columns
+outcome <- pitches.clean  %>%  select(event, des, idNum)
+
+rows <- nrow(outcome)
+for (i in 1:rows){
+  if (outcome[i,2] == "In play, out" | outcome[i,2] == "In play, no out"){
+    outcome[i,4] = outcome[i,1]
+  }
+  else{
+    outcome[i,4] = as.character(outcome[i,2])
+  }
+}
+
+names(outcome) <- c("event", "des", "idNum", "end")
+pitches.outcomes <- merge(pitches.clean, outcome, by = "idNum")
+pitches.outcomes <- pitches.outcomes %>% filter(end != "Bunt Groundout", end != "Bunt Pop Out", end != "Double Play", end != "Field Error", end != "Sac Bunt")
+pitches.outcomes$end <- as.factor(pitches.outcomes$end)
+levels(pitches.outcomes$end) <- c("Ball", "Called Strike", "Double", "Groundout", "Flyout", "Groundout","Foul","Groundout","Groundout","Home Run","Lineout","Pop Out","Sac Fly","Sac Fly", "Single","Swinging Strike","Triple")
+pitches.outcomes$end <- as.factor(pitches.outcomes$end)
+
+# Select our relevant columns, split into train and test
+pitches.clean <- pitches.outcomes
+
+pitches.model.data <- pitches.clean %>% select(start_speed, break_angle, break_length, spin_rate, zone, end)
 pitches.model.data <- na.omit(pitches.model.data)
 
-pitches.model.data[,1:12] <- scale(pitches.model.data[,1:12])
+scale.train.object <- preProcess(pitches.model.data[,1:4])
+pitches.model.data[,1:4] <- scale(pitches.model.data[,1:4])
+pitches.model.data <- na.omit(pitches.model.data)
 
-index <- createDataPartition(y = pitches.model.data$des, p=0.8)[[1]]
+
+
+index <- createDataPartition(y = pitches.model.data$end, p=0.8)[[1]]
 pitches.train <- pitches.model.data[index,]
 pitches.test <- pitches.model.data[-index,]
 
 pitches.train <- na.omit(pitches.train)
 pitches.test <- na.omit(pitches.test)
 
+# Use knn to determine the optimal number of k-neighbors to choose (14 is our best accuracy)
 library(class)
-knn.1 <- knn(pitches.train[,-c(13,14)], pitches.test[,c(-13,-14)], (pitches.train$des), k = 11)
-
-# 18 is our best accuracy
 accuracy <- rep(0, 20)
 k <- 1:20
 for(x in k){
-  prediction <- knn(pitches.train[,-c(13,14)], pitches.test[,-c(13,14)], (pitches.train$des), k = x)
-  accuracy[x] <- mean(prediction == pitches.test$des)
+  prediction <- knn(pitches.train[,-c(13,14)], pitches.test[,-c(13,14)], (pitches.train$end), k = x)
+  accuracy[x] <- mean(prediction == pitches.test$end)
 }
-
 plot(k, accuracy, type = 'b')
 
-knn.2 <- knn(pitches.train[,-c(13,14)], pitches.test[-c(13,14)], (pitches.train$des), k = 18)
+# Use kknn to make a model
+kknn.all <- kknn(pitches.train$end ~ ., train = filter(pitches.train)[-c(13,14)], test = pitches.test[-c(13,14)], k = 14)
+kknn.all$prob
 
-table(knn.2, pitches.test$des)
-barplot(prop.table(table(knn.2, pitches.test$des), 1)[1,])
+# Now write a function to generate barplot for a specific zone, pitch
+attempt.zone <- 5
+attempt.pitch <- pitches.clean[450,]
 
-outcomes_list <- list()
-zones <- c(1:9, 11:14)
-for(x in zones) {
-  outcomes_list[[x]] <- knn(filter(pitches.train, zone == x)[-c(13,14)], filter(pitches.test, zone == x)[-c(13,14)], filter(pitches.train, zone == x)$des, k = 14)
+the.big.guy <- function(zone_id, pitch) {
+  model <- kknn(filter(pitches.model.data, zone == zone_id)$end ~ ., train = filter(pitches.model.data, zone == zone_id)[-c(13,14)], test = pitch, k = 14)
+  m2 <- data.frame(model$prob)
+  outcomes <- melt(m2)
+  ggplot(outcomes, aes(x = variable, y = value, fill = variable)) + geom_bar(stat = "identity", colour = "black") + ylab("Probability") + xlab("Outcome") + ggtitle("Pitch Outcome Distribution")
 }
+
+
 
