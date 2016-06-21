@@ -1,67 +1,67 @@
-
 library(shiny)
+library(shinythemes)
 
 # Define UI for application
 ui <- shinyUI(fluidPage(theme = shinytheme("Spacelab"),
-   
-   # Application title
-   titlePanel("We Get Pitches"),
-   
-   # Sidebar with a slider input for number of bins 
-   sidebarLayout(
-      sidebarPanel(
-         sliderInput(inputId = "speed",
-                     "Pitch Speed:",
-                     min = 50,
-                     max = 110,
-                     value = 90),
-         sliderInput(inputId = "break_angle",
-                     "Break Angle:",
-                     min = -50,
-                     max = 50,
-                     value = 0),
-         sliderInput(inputId = "break_length",
-                     "Break Length:",
-                     min = 0,
-                     max = 15,
-                     value = 6),
-         sliderInput(inputId = "spin_rate",
-                     "Spin Rate:",
-                     min = 0,
-                     max = 3000,
-                     value = 1500),
-          fluidRow(column(1, h4("Zone:"))),
-         fluidRow(
-          column(1, offset = 1, actionButton("zone_11", "11")),
-          column(2, offset = 4, actionButton("zone_12", "12"))),
-         fluidRow(
-           column(1, offset = 2),
-           actionButton("zone_1", "1"),
-           actionButton("zone_2", "2"),
-           actionButton("zone_3", "3")),
-         fluidRow(
-           column(1, offset = 2),
-           actionButton("zone_4", "4"),
-           actionButton("zone_5", "5"),
-           actionButton("zone_6", "6")),
-         fluidRow(
-           column(1, offset = 2),
-         actionButton("zone_7", "7"),
-         actionButton("zone_8", "8"),
-         actionButton("zone_9", "9")),
-        fluidRow(
-          column(1, offset = 1, actionButton("zone_13", "13")),
-          column(2, offset = 4, actionButton("zone_14", "14")))
-      ),
-    
-      mainPanel(
-         plotOutput("pitch_plot")
-      )
-   )
+                        
+                        # Application title
+                        titlePanel("We Get Pitches"),
+                        
+                        # Sidebar with a slider input for number of bins 
+                        sidebarLayout(
+                          sidebarPanel(
+                            sliderInput(inputId = "speed",
+                                        "Pitch Speed:",
+                                        min = 50,
+                                        max = 110,
+                                        value = 90),
+                            sliderInput(inputId = "break_angle",
+                                        "Break Angle:",
+                                        min = -50,
+                                        max = 50,
+                                        value = 0),
+                            sliderInput(inputId = "break_length",
+                                        "Break Length:",
+                                        min = 0,
+                                        max = 15,
+                                        value = 6),
+                            sliderInput(inputId = "spin_rate",
+                                        "Spin Rate:",
+                                        min = 0,
+                                        max = 3000,
+                                        value = 1500),
+                            fluidRow(column(1, h4("Zone:"))),
+                            fluidRow(
+                              column(1, offset = 1, actionButton("zone_11", "11")),
+                              column(2, offset = 4, actionButton("zone_12", "12"))),
+                            fluidRow(
+                              column(1, offset = 2),
+                              actionButton("zone_1", "1"),
+                              actionButton("zone_2", "2"),
+                              actionButton("zone_3", "3")),
+                            fluidRow(
+                              column(1, offset = 2),
+                              actionButton("zone_4", "4"),
+                              actionButton("zone_5", "5"),
+                              actionButton("zone_6", "6")),
+                            fluidRow(
+                              column(1, offset = 2),
+                              actionButton("zone_7", "7"),
+                              actionButton("zone_8", "8"),
+                              actionButton("zone_9", "9")),
+                            fluidRow(
+                              column(1, offset = 1, actionButton("zone_13", "13")),
+                              column(2, offset = 4, actionButton("zone_14", "14")))
+                          ),
+                          
+                          mainPanel(
+                            plotOutput("pitch_plot")
+                          )
+                        )
 ))
 
 server <- shinyServer(function(input, output) {
-   
+  
   #save output objects to output$
   #what you put into output object should be a render function
   #put braces around code ({ }) to pass code as unified block
@@ -122,27 +122,36 @@ server <- shinyServer(function(input, output) {
     v$data <- 14
   })
   
-########################################################  
+  ########################################################  
   #The call for data
   #speed, break_angle, break_length, spin_rate, v$data
   
-  test <- data.frame("speed" = input$speed, "break_angle" = input$break_angle, "break_length" = input$break_length,
-                      "spin_rate" = input$spin_rate)
+  test.pitch <- reactive({predict(scale.train.object, data.frame("start_speed" = input$speed, "break_angle" = input$break_angle, "break_length" = input$break_length,
+                                     "spin_rate" = input$spin_rate))})
+ 
   library(kknn)
   
-  #kknn(formula, data, test = test)
+  #test.data <- predict.preProcess(train.preProcess.object, test.pitch())
   
-########################################################  
+  the.big.guy <- function(zone_id) {
+    model <- kknn(filter(pitches.model.data, zone == zone_id)$end ~ start_speed + break_angle + break_length + spin_rate, train = filter(pitches.model.data, zone == zone_id)[-c(13,14)], test = test.pitch(), k = 14)
+    m2 <- data.frame(model$prob)
+    outcomes <- melt(m2)
+    ggplot(outcomes, aes(x = variable, y = value, fill = variable)) + geom_bar(stat = "identity", colour = "black") + ylab("Probability") + xlab("Outcome") + ggtitle("Pitch Outcome Distribution")
+    
+  }
   
- output$pitch_plot <- renderPlot({
-    plot()
-})
-
-   #renderPrint consider for printing out the statistics 
-   #reactive builds a reactive object that can be used to store a reactive value in
-   
+  
+  ########################################################  
+  
+  output$pitch_plot <- renderPlot({
+    the.big.guy(v$data)
+  })
+  
+  #renderPrint consider for printing out the statistics 
+  #reactive builds a reactive object that can be used to store a reactive value in
+  
 })
 
 # Run the application 
 shinyApp(ui = ui, server = server)
-
