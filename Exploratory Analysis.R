@@ -92,6 +92,7 @@ varImp(pitch.rpart)
 # Figure out the mean values of the four features for different types of pitches so that
 # we can have default values for our sliders
 
+<<<<<<< HEAD
 pitcher.find <- function(pitcher){
   (pitcher)
   pitches.clean$match <- str_count(pitcher, pitches.clean$pitcher_name) 
@@ -127,6 +128,31 @@ final$Pitch_type <- lapply(final$`Pitcher and Type`, function(n) {str_split(n, '
 # We might want to omit the NA's. Na's represent pitches that the pitcher does not have. We
 # don't know if we want to do this yet. NA's could be helpful
 # final <- na.omit(final)
+=======
+fastball <- pitches.clean %>% filter(pitch_type == "FF")
+fastballSpeed <- mean(fastball$start_speed)
+fastballBreak <- mean(fastball$break_length)
+fastballPfx <- mean(fastball$pfx_z)
+fastballSpin <- mean(fastball$spin_rate)
+
+curveball <- pitches.clean %>% filter(pitch_type == "CU")
+curveballSpeed <- mean(curveball$start_speed)
+curveballBreak <- mean(curveball$break_length)
+curveballPfx <- mean(curveball$pfx_z)
+curveballSpin <- mean(curveball$spin_rate)
+
+slider <- pitches.clean %>%  filter(pitch_type == "SL")
+sliderSpeed <- mean(slider$start_speed)
+sliderBreak <- mean(slider$break_length)
+sliderPfx <- mean(slider$pfx_z)
+sliderSpin <- mean(slider$spin_rate)
+
+change <- pitches.clean %>%  filter(pitch_type == "CH")
+changeSpeed <- mean(change$start_speed)
+changeBreak <- mean(change$break_length)
+changePfx <- mean(change$pfx_z)
+changeSpin <- mean(change$spin_rate)
+>>>>>>> d7dd9894255bdea6112ebdd6ff6ed6d0016d8553
 
   
   
