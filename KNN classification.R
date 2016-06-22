@@ -10,35 +10,40 @@ library(reshape2)
 
 # Load data (from pitches and the API)
 dat <- scrape(start = "2016-06-18", end = "2016-06-19")
+
 pitchFX <- plyr::join(dat$atbat, dat$pitch, by = c("num", "url"), type = "inner")
 
 duplicates <- duplicated(t(pitchFX))
 pitchFX <- pitchFX[,!duplicates]
 
 # Clean data
-pitches.clean <- pitchFX %>% select(b, s, o, stand, p_throws, event, inning, batter_name, pitcher_name, date, des, x, y, start_speed, end_speed, pfx_x, pfx_z, px, pz, x0, y0, z0, vx0, vy0, vz0, ax, ay, az, break_y, break_angle, break_length, pitch_type, zone, nasty, spin_dir, spin_rate, count)
+pitches.clean <- pitchFX %>% dplyr::select(b, s, o, stand, p_throws, event, inning, batter_name, pitcher_name, date, des, x, y, start_speed, end_speed, pfx_x, pfx_z, px, pz, x0, y0, z0, vx0, vy0, vz0, ax, ay, az, break_y, break_angle, break_length, pitch_type, zone, nasty, spin_dir, spin_rate, count)
+
+pitches.clean <- season
 
 pitches.clean$break_y <- as.numeric(pitches.clean$break_y)
 pitches.clean$break_angle <- as.numeric(pitches.clean$break_angle)
 pitches.clean$break_length <- as.numeric(pitches.clean$break_length)
 pitches.clean$stand <- as.factor(pitches.clean$stand)
+pitches.clean$des <- as.character(pitches.clean$des)
 duplicates <- duplicated(t(pitches.clean))
 pitches.clean <- pitches.clean[,!duplicates]
-pitches.clean <- pitches.clean%>% filter(pitch_type != "PO", pitch_type != "IN")
+pitches.clean <- pitches.clean%>% dplyr::filter(pitch_type != "PO", pitch_type != "IN")
+pitches.clean <- pitches.clean %>% dplyr::filter(des != "Hit By Pitch", des != "Intent Ball", des != "Missed Bunt", des != "Pitchout", des != "Automatic Ball")
 pitches.clean$des <- as.factor(pitches.clean$des)
-levels(pitches.clean$des) <- c("Ball", "Ball", "Called Strike", "Foul", "Foul", "Foul", "Foul", "Ball", "In play, no out", "In play, out", "In play, no out", "Swinging Strike", "Swinging Strike", "Swinging Strike")
+
+levels(pitches.clean$des) <- c("Ball", "Ball", "Called Strike", "Foul", "Foul", "Foul", "Foul", "In play, no out", "In play, out", "In play, no out", "Swinging Strike", "Swinging Strike")
 pitches.clean$des <- as.factor(pitches.clean$des)
 
 pitches.clean$idNum <- sample(1:nrow(pitches.clean), nrow(pitches.clean))
 
-
 # Add Outcome Columns
-outcome <- pitches.clean  %>%  select(event, des, idNum)
+outcome <- pitches.clean  %>%  dplyr::select(event, des, idNum)
 
 rows <- nrow(outcome)
 for (i in 1:rows){
   if (outcome[i,2] == "In play, out" | outcome[i,2] == "In play, no out"){
-    outcome[i,4] = outcome[i,1]
+    outcome[i,4] = as.character(outcome[i,1])
   }
   else{
     outcome[i,4] = as.character(outcome[i,2])
@@ -46,8 +51,9 @@ for (i in 1:rows){
 }
 
 names(outcome) <- c("event", "des", "idNum", "end")
+pitches.clean <- pitches.clean %>% dplyr::select(-event, -des)
 pitches.outcomes <- merge(pitches.clean, outcome, by = "idNum")
-pitches.outcomes <- pitches.outcomes %>% filter(end != "Bunt Groundout", end != "Bunt Pop Out", end != "Double Play", end != "Field Error", end != "Sac Bunt", end != "Batter Interference", end != "Catcher Interference")
+pitches.outcomes <- pitches.outcomes %>% filter(end != "Bunt Groundout", end != "Bunt Pop Out", end != "Double Play", end != "Field Error", end != "Sac Bunt", end != "Batter Interference", end != "Catcher Interference", end != "Bunt Lineout", end != "Fan interference")
 pitches.outcomes$end <- as.factor(pitches.outcomes$end)
 
 # THIS LINE NEEDS TO BE FIXED
@@ -55,9 +61,10 @@ levels(pitches.outcomes$end) <- c("Ball", "Called Strike", "XB Hit", "Groundout"
 pitches.outcomes$end <- as.factor(pitches.outcomes$end)
 
 # Select our relevant columns, split into train and test
-pitches.clean <- pitches.outcomes
 
-pitches.model.data <- pitches.clean %>% select(start_speed, break_length, spin_rate, pfx_z, zone, stand, pitcher_name, end)
+# Season2016Final data frame goes up to here
+
+pitches.model.data <- pitches.outcomes %>% dplyr::select(start_speed, break_length, spin_rate, pfx_z, zone, stand, pitcher_name, end)
 pitches.model.data <- na.omit(pitches.model.data)
 
 scale.train.object <- preProcess(pitches.model.data[,1:4])

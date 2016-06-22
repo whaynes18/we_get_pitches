@@ -10,7 +10,7 @@ ui <- shinyUI(fluidPage(theme = shinytheme("spacelab"),
                         # Sidebar with a slider input for number of bins 
                         sidebarLayout(
                           sidebarPanel(
-                            selectInput("pitcher_name", "Select Pitcher:", c("Carlos Zambrano", "Chris Sale", "Randy Johnson")),
+                            selectInput("pitcher_name", "Select Pitcher:", c("All", levels(pitches.outcomes$pitcher_name))),
                             ###############################################################################
                             ## buttons to select default pitch
                             actionButton('fastball', 'fastball'),
@@ -135,36 +135,49 @@ server <- shinyServer(function(input, output, session) {
   ########################################################  
   ## Default pitch values
   
-  fastball <- pitches.clean %>% filter(pitch_type == "FF")
-  fastballSpeed <- mean(fastball$start_speed)
-  fastballBreak <- mean(fastball$break_length)
-  fastballPfx <- mean(fastball$pfx_z)
-  fastballSpin <- mean(fastball$spin_rate)
   
-  curveball <- pitches.clean %>% filter(pitch_type == "CU")
-  curveballSpeed <- mean(curveball$start_speed)
-  curveballBreak <- mean(curveball$break_length)
-  curveballPfx <- mean(curveball$pfx_z)
-  curveballSpin <- mean(curveball$spin_rate)
+  #rel.df <- reactive({
+  #  if (input$pitcher_name == "All"){
+  #    pop <- pitches.clean
+  #  }
+  #  else{
+  #    pop <- pitches.clean %>% dplyr::filter(pitcher_name == input$pitcher_name)
+  #  }
+  #})
   
-  slider <- pitches.clean %>%  filter(pitch_type == "SL")
-  sliderSpeed <- mean(slider$start_speed)
-  sliderBreak <- mean(slider$break_length)
-  sliderPfx <- mean(slider$pfx_z)
-  sliderSpin <- mean(slider$spin_rate)
+   
   
-  change <- pitches.clean %>%  filter(pitch_type == "CH")
-  changeSpeed <- mean(change$start_speed)
-  changeBreak <- mean(change$break_length)
-  changePfx <- mean(change$pfx_z)
-  changeSpin <- mean(change$spin_rate)
+  #fastball <- rel.df() %>% filter(pitch_type == "FF")
+#    fastballSpeed <- mean(fastball$start_speed)
+#    fastballBreak <- mean(fastball$break_length)
+#    fastballPfx <- mean(fastball$pfx_z)
+#    fastballSpin <- mean(fastball$spin_rate)
+  
+#    curveball <- rel.df() %>% filter(pitch_type == "CU")
+#    curveballSpeed <- mean(curveball$start_speed)
+#    curveballBreak <- mean(curveball$break_length)
+#    curveballPfx <- mean(curveball$pfx_z)
+#    curveballSpin <- mean(curveball$spin_rate)
+  
+#    slider <- rel.df() %>%  filter(pitch_type == "SL")
+#    sliderSpeed <- mean(slider$start_speed)
+#    sliderBreak <- mean(slider$break_length)
+#    sliderPfx <- mean(slider$pfx_z)
+#    sliderSpin <- mean(slider$spin_rate)
+  
+#    change <- rel.df() %>%  filter(pitch_type == "CH")
+#    changeSpeed <- mean(change$start_speed)
+#    changeBreak <- mean(change$break_length)
+#    changePfx <- mean(change$pfx_z)
+#    changeSpin <- mean(change$spin_rate)
   
   observeEvent(input$fastball, {
-    ##speed_new$data <- 90
-    ##breaklength_new$data <- 4.19
-    ##breakangle_new$data <- 0
-    ##pfx_z_new$data <- 6
-    ##spin_new$data <- 12
+    
+    fastball <- pitches.clean %>% dplyr::filter(pitcher_name == input$pitcher_name) %>% dplyr::filter(pitch_type == "FF")
+    fastballSpeed <- mean(fastball$start_speed)
+    fastballBreak <- mean(fastball$break_length)
+    fastballPfx <- mean(fastball$pfx_z)
+    fastballSpin <- mean(fastball$spin_rate)
     
     updateSliderInput(session, "speed", value = fastballSpeed)
     updateSliderInput(session, "break_length", value = fastballBreak)
@@ -173,11 +186,12 @@ server <- shinyServer(function(input, output, session) {
   })
   
   observeEvent(input$curve, {
-    ##speed_new$data <- 12
-    ##breaklength_new$data <- 12
-    ##breakangle_new$data <- 12
-    ##pfx_z_new$data <- 6
-    ##spin_new$data <- 12  
+    
+    curves <- pitches.clean %>% dplyr::filter(pitcher_name == input$pitcher_name) %>% dplyr::filter(pitch_type == "CU")
+    curveballSpeed <- mean(curves$start_speed)
+    curveballBreak <- mean(curves$break_length)
+    curveballPfx <- mean(curves$pfx_z)
+    curveballSpin <- mean(curves$spin_rate)
     
     updateSliderInput(session, "speed", value = curveballSpeed)
     updateSliderInput(session, "break_length", value = curveballBreak)
@@ -186,11 +200,12 @@ server <- shinyServer(function(input, output, session) {
   })
   
   observeEvent(input$slider, {
-    ##speed_new$data <- 12
-    ##breaklength_new$data <- 12
-    ##breakangle_new$data <- 12
-    ##pfx_z_new$data <- 6
-    ##spin_new$data <- 12
+    
+    sliders = pitches.clean %>% dplyr::filter(pitcher_name == input$pitcher_name) %>% dplyr::filter(pitch_type == "SL")
+    sliderSpeed = mean(sliders$start_speed)
+    sliderBreak = mean(sliders$break_length)
+    sliderPfx = mean(sliders$pfx_z)
+    sliderSpin = mean(sliders$spin_rate)
     
     updateSliderInput(session, "speed", value = sliderSpeed)
     updateSliderInput(session, "break_length", value = sliderBreak)
@@ -199,17 +214,13 @@ server <- shinyServer(function(input, output, session) {
   })
   
   observeEvent(input$change, {
-    ##speed_new$data <- 84
-    ##breaklength_new$data <- 7.7
-    ##pfx_z_new$data <- 4.0
-    ##spin_new$data <- 1525 
     
-    
-    ##updateSliderInput(session, "speed", value = (speed_new$data <- 84))
-    ##updateSliderInput(session, "break_length", value = (breaklength_new$data <- 7.7))
-    ##updateSliderInput(session, "pfx_z", value = (pfx_z_new$data <- 4.0))
-    ##updateSliderInput(session, "spin_rate", value = (spin_new$data <- 1525))
-    
+    changes <- pitches.clean %>% dplyr::filter(pitcher_name == input$pitcher_name) %>% dplyr::filter(pitch_type == "CH")
+    changeSpeed <- mean(changes$start_speed)
+    changeBreak <- mean(changes$break_length)
+    changePfx <- mean(changes$pfx_z)
+    changeSpin <- mean(changes$spin_rate)
+        
     updateSliderInput(session, "speed", value = changeSpeed)
     updateSliderInput(session, "break_length", value = changeBreak)
     updateSliderInput(session, "pfx_z", value = changePfx)
@@ -243,10 +254,7 @@ server <- shinyServer(function(input, output, session) {
   #The call for data
   #speed, break_angle, break_length, spin_rate, v$data
   
-<<<<<<< HEAD
 
-=======
->>>>>>> 79b9cf4b222499ba27d3c6adb66e31d7375947ff
   ##test.pitch <- reactive({predict(scale.train.object, data.frame("start_speed" = input$speed, "break_angle" = input$break_angle, "break_length" = input$break_length,
   ##                                 "spin_rate" = input$spin_rate))})
   
@@ -256,11 +264,7 @@ server <- shinyServer(function(input, output, session) {
   ##test.pitch <- reactive({predict(scale.train.object, data.frame("start_speed" = speed_new$data, "break_angle" = breakangle_new$data, "break_length" = breaklength_new$data,
   ##                                                            "spin_rate" = spin_new$data))})
   
-<<<<<<< HEAD
 
-
-=======
->>>>>>> 79b9cf4b222499ba27d3c6adb66e31d7375947ff
   test.pitch <- reactive({predict(scale.train.object, data.frame("start_speed" = speed_new$data, "pfx_z" = pfx_z_new$data, "break_length" = breaklength_new$data,
                                                                  "spin_rate" = spin_new$data))})
   
@@ -277,14 +281,14 @@ server <- shinyServer(function(input, output, session) {
   
   
   pitcher.find <- function(pitcher){
-    (pitcher)
+    pitcher <- as.character(pitcher)
     pitches.model.data$match <- str_count(pitcher, pitches.model.data$pitcher_name) 
     pitches.model.data %>% filter(match == 1)
   }
   
-  the.big.guy.R.pitcher <- function(zone_id, pitcher = "NA") {
-    if (pitcher != "NA") {
-      relevant.data <- filter(pitcher.find(pitcher), zone == zone_id, stand == "R")
+  the.big.guy.R.pitcher <- function(zone_id, pitcher = "All") {
+    if (pitcher != "All") {
+      relevant.data <- filter(pitches.model.data, pitcher_name == pitcher, zone == zone_id, stand == "R")
       relevant.data <- relevant.data[,-9]
     } else {
       relevant.data <- filter(pitches.model.data, zone == zone_id, stand == "R")
@@ -293,12 +297,12 @@ server <- shinyServer(function(input, output, session) {
     m2 <- data.frame(model$prob)
     outcomes <- melt(m2)
     outcomes$variable <- factor(outcomes$variable,levels(outcomes$variable)[c(11, 2, 6,1, 4, 9, 5, 8, 10, 3, 7)])
-    ggplot(outcomes, aes(x = variable, y = value)) + scale_fill_manual(values = c("springgreen3", "springgreen3", "springgreen3","pink1", "sienna1", "sienna1", "sienna1", "sienna1","orangered2", "orangered2", "orangered2")) + geom_bar(stat = "identity", colour = "black", aes(fill = variable)) + ylab("Probability") + xlab("Outcome") + ggtitle("Pitch Outcome Distribution")
+    ggplot(outcomes, aes(x = variable, y = value)) + scale_fill_manual(values = c("springgreen3", "springgreen3", "springgreen3","pink1", "sienna1", "sienna1", "sienna1", "sienna1","orangered2", "orangered2", "orangered2")) + geom_bar(stat = "identity", colour = "black", aes(fill = variable)) + ylab("Probability") + xlab("Outcome") + ggtitle("Pitch Outcome Distribution - Righty")
   }
   
-  the.big.guy.L.pitcher <- function(zone_id, pitcher = "NA") {
-    if (pitcher != "NA") {
-      relevant.data <- filter(pitcher.find(pitcher), zone == zone_id, stand == "L")
+  the.big.guy.L.pitcher <- function(zone_id, pitcher = "All") {
+    if (pitcher != "All") {
+      relevant.data <- filter(pitches.model.data, pitcher_name == pitcher, zone == zone_id, stand == "L")
       relevant.data <- relevant.data[,-9]
     } else {
       relevant.data <- filter(pitches.model.data, zone == zone_id, stand == "L")
@@ -307,15 +311,11 @@ server <- shinyServer(function(input, output, session) {
     m2 <- data.frame(model$prob)
     outcomes <- melt(m2)
     outcomes$variable <- factor(outcomes$variable,levels(outcomes$variable)[c(11, 2, 6,1, 4, 9, 5, 8, 10, 3, 7)])
-<<<<<<< HEAD
+
 
     ggplot(outcomes, aes(x = variable, y = value)) + scale_fill_manual(values = c("springgreen3", "springgreen3", "springgreen3","pink1", "sienna1", "sienna1", "sienna1", "sienna1","orangered2", "orangered2", "orangered2")) + geom_bar(stat = "identity", colour = "black", aes(fill = variable)) + ylab("Probability") + xlab("Outcome") + ggtitle("Pitch Outcome Distribution - Lefty Hitters")
 
-    ggplot(outcomes, aes(x = variable, y = value)) + scale_fill_manual(values = c("springgreen3", "springgreen3", "springgreen3","pink1", "sienna1", "sienna1", "sienna1", "sienna1","orangered2", "orangered2", "orangered2")) + geom_bar(stat = "identity", colour = "black", aes(fill = variable)) + ylab("Probability") + xlab("Outcome") + ggtitle("Pitch Outcome Distribution")
 
-=======
-    ggplot(outcomes, aes(x = variable, y = value)) + scale_fill_manual(values = c("springgreen3", "springgreen3", "springgreen3","pink1", "sienna1", "sienna1", "sienna1", "sienna1","orangered2", "orangered2", "orangered2")) + geom_bar(stat = "identity", colour = "black", aes(fill = variable)) + ylab("Probability") + xlab("Outcome") + ggtitle("Pitch Outcome Distribution")
->>>>>>> 79b9cf4b222499ba27d3c6adb66e31d7375947ff
   }
   
   
@@ -323,11 +323,11 @@ server <- shinyServer(function(input, output, session) {
   
   ## Plot output
   output$pitch_plot <- renderPlot({
-    the.big.guy.R.pitcher(v$data)
+    the.big.guy.R.pitcher(v$data, input$pitcher_name)
   })
   
   output$pitch_plot_2 <- renderPlot({
-    the.big.guy.L.pitcher(v$data)
+    the.big.guy.L.pitcher(v$data, input$pitcher_name)
   })
   
   

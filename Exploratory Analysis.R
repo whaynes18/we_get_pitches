@@ -99,7 +99,7 @@ pitcher.find <- function(pitcher){
   pitches.clean %>% filter(match == 1)
 }
 
-hurlers <- pitches.clean %>% select(pitcher_name, pitch_type, start_speed, break_length, pfx_z, spin_rate)
+hurlers <- pitches.clean %>% dplyr::select(pitcher_name, pitch_type, start_speed, break_length, pfx_z, spin_rate)
 hurlers$pitcher_name <- as.factor(hurlers$pitcher_name)
 hurlers$pitch_type <- as.factor(hurlers$pitch_type) 
 
