@@ -51,7 +51,7 @@ pitches.outcomes$end <- as.factor(pitches.outcomes$end)
 # Select our relevant columns, split into train and test
 pitches.clean <- pitches.outcomes
 
-pitches.model.data <- pitches.clean %>% select(start_speed, break_length, spin_rate, pfx_z, zone, end)
+pitches.model.data <- pitches.clean %>% select(start_speed, break_length, spin_rate, pfx_z, zone, stand, pitcher_name, end)
 pitches.model.data <- na.omit(pitches.model.data)
 
 scale.train.object <- preProcess(pitches.model.data[,1:4])
@@ -86,9 +86,9 @@ attempt.zone <- 5
 attempt.pitch <- pitches.clean[450,]
 
 the.big.guy <- function(zone_id, pitch) {
-  model <- kknn(filter(pitches.model.data, zone == zone_id)$end ~ ., train = filter(pitches.model.data, zone == zone_id)[-c(13,14)], test = pitch, k = 14)
+  model <- kknn(filter(pitches.model.data, zone == zone_id, stand == "R")$end ~ ., train = filter(pitches.model.data, zone == zone_id, stand == "R")[-c(5:8)], test = pitch, k = 14)
   m2 <- data.frame(model$prob)
   outcomes <- melt(m2)
-  outcomes$variable <- factor(outcomes$variable,levels(outcomes$variable)[c(11, 2, 6, 4, 9, 5, 8, 1, 10, 3, 7)])
-  ggplot(outcomes, aes(x = variable, y = value)) + scale_fill_manual(values = c("springgreen3", "springgreen3", "springgreen3", "sienna1", "sienna1", "sienna1", "sienna1","pink1","orangered2", "orangered2", "orangered2")) + geom_bar(stat = "identity", colour = "black", aes(fill = variable)) + ylab("Probability") + xlab("Outcome") + ggtitle("Pitch Outcome Distribution")
+  outcomes$variable <- factor(outcomes$variable,levels(outcomes$variable)[c(11, 2, 6,1, 4, 9, 5, 8, 10, 3, 7)])
+  ggplot(outcomes, aes(x = variable, y = value)) + scale_fill_manual(values = c("springgreen3", "springgreen3", "springgreen3","pink1", "sienna1", "sienna1", "sienna1", "sienna1","orangered2", "orangered2", "orangered2")) + geom_bar(stat = "identity", colour = "black", aes(fill = variable)) + ylab("Probability") + xlab("Outcome") + ggtitle("Pitch Outcome Distribution")
 }

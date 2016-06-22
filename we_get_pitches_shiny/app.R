@@ -56,7 +56,8 @@ ui <- shinyUI(fluidPage(theme = shinytheme("Spacelab"),
       ),
       
       mainPanel(
-        plotOutput("pitch_plot")
+        plotOutput("pitch_plot"),
+        plotOutput("pitch_plot_2")
      
       )
     )
@@ -208,22 +209,41 @@ server <- shinyServer(function(input, output) {
                                                                  "spin_rate" = spin_new$data))})
  
   ## Function to perform kknn and plot
-  the.big.guy <- function(zone_id) {
+  the.big.guy.R <- function(zone_id) {
     ##model <- kknn(filter(pitches.model.data, zone == zone_id)$end ~ start_speed + break_angle + break_length + spin_rate, train = filter(pitches.model.data, zone == zone_id)[-c(13,14)], test = test.pitch(), k = 14)
-    model <- kknn(filter(pitches.model.data, zone == zone_id)$end ~ start_speed + pfx_z + break_length + spin_rate, train = filter(pitches.model.data, zone == zone_id)[-c(13,14)], test = test.pitch(), k = 14)
+    model <- kknn(filter(pitches.model.data, zone == zone_id, stand == "R")$end ~ start_speed + pfx_z + break_length + spin_rate, train = filter(pitches.model.data, zone == zone_id, stand == "R")[-c(13,14)], test = test.pitch(), k = 14)
     
     m2 <- data.frame(model$prob)
     outcomes <- melt(m2)
-    ggplot(outcomes, aes(x = variable, y = value, fill = variable)) + geom_bar(stat = "identity", colour = "black") + ylab("Probability") + xlab("Outcome") + ggtitle("Pitch Outcome Distribution")
+    
+    outcomes$variable <- factor(outcomes$variable,levels(outcomes$variable)[c(11, 2, 6,1, 4, 9, 5, 8, 10, 3, 7)])
+    ggplot(outcomes, aes(x = variable, y = value)) + scale_fill_manual(values = c("springgreen3", "springgreen3", "springgreen3","pink1", "sienna1", "sienna1", "sienna1", "sienna1","orangered2", "orangered2", "orangered2")) + geom_bar(stat = "identity", colour = "black", aes(fill = variable)) + ylab("Probability") + xlab("Outcome") + ggtitle("Pitch Outcome Distribution - Right Hitters")
   }
+  
+  the.big.guy.L <- function(zone_id) {
+    ##model <- kknn(filter(pitches.model.data, zone == zone_id)$end ~ start_speed + break_angle + break_length + spin_rate, train = filter(pitches.model.data, zone == zone_id)[-c(13,14)], test = test.pitch(), k = 14)
+    model <- kknn(filter(pitches.model.data, zone == zone_id, stand == "L")$end ~ start_speed + pfx_z + break_length + spin_rate, train = filter(pitches.model.data, zone == zone_id, stand == "L")[-c(13,14)], test = test.pitch(), k = 14)
+    
+    m2 <- data.frame(model$prob)
+    outcomes <- melt(m2)
+    
+    outcomes$variable <- factor(outcomes$variable,levels(outcomes$variable)[c(11, 2, 6,1, 4, 9, 5, 8, 10, 3, 7)])
+    ggplot(outcomes, aes(x = variable, y = value)) + scale_fill_manual(values = c("springgreen3", "springgreen3", "springgreen3","pink1", "sienna1", "sienna1", "sienna1", "sienna1","orangered2", "orangered2", "orangered2")) + geom_bar(stat = "identity", colour = "black", aes(fill = variable)) + ylab("Probability") + xlab("Outcome") + ggtitle("Pitch Outcome Distribution - Lefty Hitters")
+  }
+  
   
   
   ########################################################  
   
   ## Plot output
   output$pitch_plot <- renderPlot({
-    the.big.guy(v$data)
+    the.big.guy.R(v$data)
   })
+  
+  output$pitch_plot_2 <- renderPlot({
+    the.big.guy.L(v$data)
+  })
+  
   
   #renderPrint consider for printing out the statistics 
   #reactive builds a reactive object that can be used to store a reactive value in
