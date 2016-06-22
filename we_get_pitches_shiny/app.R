@@ -200,13 +200,13 @@ server <- shinyServer(function(input, output) {
     ##                                 "spin_rate" = input$spin_rate))})
   
   
-<<<<<<< HEAD
+
   the.big.guy <- function(zone_id) {
     model <- kknn(filter(pitches.model.data, zone == zone_id)$end ~ start_speed + break_angle + break_length + spin_rate, train = filter(pitches.model.data, zone == zone_id)[-c(5,6)], test = test.pitch(), k = 14)
     m2 <- data.frame(model$prob)
     outcomes <- melt(m2)
     ggplot(outcomes, aes(x = variable, y = value, fill = variable)) + geom_bar(stat = "identity", colour = "black") + ylab("Probability") + xlab("Outcome") + ggtitle("Pitch Outcome Distribution")
-=======
+  }
   ## Update our "sample pitch" based on input
   ## Use predict to scale values
   ##test.pitch <- reactive({predict(scale.train.object, data.frame("start_speed" = speed_new$data, "break_angle" = breakangle_new$data, "break_length" = breaklength_new$data,
@@ -236,7 +236,6 @@ server <- shinyServer(function(input, output) {
     
     outcomes$variable <- factor(outcomes$variable,levels(outcomes$variable)[c(11, 2, 6,1, 4, 9, 5, 8, 10, 3, 7)])
     ggplot(outcomes, aes(x = variable, y = value)) + scale_fill_manual(values = c("springgreen3", "springgreen3", "springgreen3","pink1", "sienna1", "sienna1", "sienna1", "sienna1","orangered2", "orangered2", "orangered2")) + geom_bar(stat = "identity", colour = "black", aes(fill = variable)) + ylab("Probability") + xlab("Outcome") + ggtitle("Pitch Outcome Distribution - Lefty Hitters")
->>>>>>> d7dd9894255bdea6112ebdd6ff6ed6d0016d8553
   }
   
   
