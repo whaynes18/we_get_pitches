@@ -7,7 +7,7 @@ library(caret)
 library(kknn)
 
 # Load data (from pitches and the API)
-dat <- scrape(start = "2016-06-18", end = "2016-06-19")
+dat <- scrape(start = "2016-04-01", end = "2016-04-30")
 pitchFX <- plyr::join(dat$atbat, dat$pitch, by = c("num", "url"), type = "inner")
 
 # Clean data
@@ -92,27 +92,41 @@ varImp(pitch.rpart)
 # Figure out the mean values of the four features for different types of pitches so that
 # we can have default values for our sliders
 
-fastball <- pitches.clean2 %>% filter(pitch_type == "FF")
-fastballSpeed <- mean(fastball$start_speed)
-fastballBreak <- mean(fastball$break_length)
-fastballPfx <- mean(fastball$pfx_z)
-fastballSpin <- mean(fastball$spin_rate)
+pitcher.find <- function(pitcher){
+  (pitcher)
+  pitches.clean$match <- str_count(pitcher, pitches.clean$pitcher_name) 
+  pitches.clean %>% filter(match == 1)
+}
 
-curveball <- pitches.clean2 %>% filter(pitch_type == "CU")
-curveballSpeed <- mean(curveball$start_speed)
-curveballBreak <- mean(curveball$break_length)
-curveballPfx <- mean(curveball$pfx_z)
-curveballSpin <- mean(curveball$spin_rate)
+hurlers <- pitches.clean %>% select(pitcher_name, pitch_type, start_speed, break_length, pfx_z, spin_rate)
+hurlers$pitcher_name <- as.factor(hurlers$pitcher_name)
+hurlers$pitch_type <- as.factor(hurlers$pitch_type) 
 
-slider <- pitches.clean2 %>%  filter(pitch_type == "SL")
-sliderSpeed <- mean(slider$start_speed)
-sliderBreak <- mean(slider$break_length)
-sliderPfx <- mean(slider$pfx_z)
-sliderSpin <- mean(slider$spin_rate)
+# this creates a label for each pitch which combines the pitchers name and the pitch type
+hurlers$name_and_pitch <- with(hurlers, interaction(pitcher_name, pitch_type))
 
-change <- pitches.clean2 %>%  filter(pitch_type == "CH")
-changeSpeed <- mean(change$start_speed)
-changeBreak <- mean(change$break_length)
-changePfx <- mean(change$pfx_z)
-changeSpin <- mean(change$spin_rate)
+# gives an array with the mean speed of each pitch for each pitcher
+speed_mean <- with(hurlers, tapply(start_speed, name_and_pitch, mean)) %>% adply(1)
+break_length_mean <- with(hurlers, tapply(break_length, name_and_pitch, mean)) %>% adply(1)
+pfx_z_mean <- with(hurlers, tapply(pfx_z, name_and_pitch, mean)) %>% adply(1)
+spin_rate_mean <- with(hurlers, tapply(spin_rate, name_and_pitch, mean)) %>% adply(1)
 
+names(speed_mean) <- c("Pitcher and Type", "Average Start Speed")
+names(break_length_mean) <- c("Pitcher and Type", "Average Break Length")
+names(pfx_z_mean) <- c("Pitcher and Type", "Average pfx_z")
+names(spin_rate_mean) <- c("Pitcher and Type", "Average Spin Rate")
+
+final <- merge(speed_mean, break_length_mean, by = "Pitcher and Type")
+final <- merge(final, pfx_z_mean, by = "Pitcher and Type")
+final <- merge(final, spin_rate_mean, by = "Pitcher and Type")
+
+final$`Pitcher and Type` <- as.character(final$`Pitcher and Type`)
+final$Pitcher <- lapply(final$`Pitcher and Type`, function(n) {str_split(n, '\\.')[[1]][1]})
+final$Pitch_type <- lapply(final$`Pitcher and Type`, function(n) {str_split(n, '\\.')[[1]][2]})
+
+# We might want to omit the NA's. Na's represent pitches that the pitcher does not have. We
+# don't know if we want to do this yet. NA's could be helpful
+# final <- na.omit(final)
+
+  
+  
