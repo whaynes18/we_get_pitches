@@ -12,8 +12,12 @@ library(reshape2)
 dat <- scrape(start = "2016-06-18", end = "2016-06-19")
 pitchFX <- plyr::join(dat$atbat, dat$pitch, by = c("num", "url"), type = "inner")
 
+duplicates <- duplicated(t(pitchFX))
+pitchFX <- pitchFX[,!duplicates]
+
 # Clean data
-pitches.clean <- pitchFX
+pitches.clean <- pitchFX %>% select(b, s, o, stand, p_throws, event, inning, batter_name, pitcher_name, date, des, x, y, start_speed, end_speed, pfx_x, pfx_z, px, pz, x0, y0, z0, vx0, vy0, vz0, ax, ay, az, break_y, break_angle, break_length, pitch_type, zone, nasty, spin_dir, spin_rate, count)
+
 pitches.clean$break_y <- as.numeric(pitches.clean$break_y)
 pitches.clean$break_angle <- as.numeric(pitches.clean$break_angle)
 pitches.clean$break_length <- as.numeric(pitches.clean$break_length)
@@ -43,9 +47,11 @@ for (i in 1:rows){
 
 names(outcome) <- c("event", "des", "idNum", "end")
 pitches.outcomes <- merge(pitches.clean, outcome, by = "idNum")
-pitches.outcomes <- pitches.outcomes %>% filter(end != "Bunt Groundout", end != "Bunt Pop Out", end != "Double Play", end != "Field Error", end != "Sac Bunt")
+pitches.outcomes <- pitches.outcomes %>% filter(end != "Bunt Groundout", end != "Bunt Pop Out", end != "Double Play", end != "Field Error", end != "Sac Bunt", end != "Batter Interference", end != "Catcher Interference")
 pitches.outcomes$end <- as.factor(pitches.outcomes$end)
-levels(pitches.outcomes$end) <- c("Ball", "Called Strike", "XB Hit", "Groundout", "Fly Out", "Groundout","Foul","Groundout","Groundout","Home Run","Lineout","Pop Out","Fly Out","Fly Out", "Single","Swinging Strike","XB Hit")
+
+# THIS LINE NEEDS TO BE FIXED
+levels(pitches.outcomes$end) <- c("Ball", "Called Strike", "XB Hit", "Groundout", "Groundout", "Fly Out", "Groundout","Foul","Groundout","Groundout","Home Run","Lineout","Pop Out","Fly Out","Fly Out", "Single","Swinging Strike","XB Hit")
 pitches.outcomes$end <- as.factor(pitches.outcomes$end)
 
 # Select our relevant columns, split into train and test
