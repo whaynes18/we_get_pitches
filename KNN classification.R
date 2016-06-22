@@ -84,24 +84,35 @@ kknn.all <- kknn(pitches.train$end ~ ., train = filter(pitches.train)[-c(13,14)]
 kknn.all$prob
 
 # Now write a function to generate barplot for a specific zone, pitch
-attempt.zone <- 5
 attempt.pitch <- pitches.clean[450,]
 
-the.big.guy <- function(zone_id, pitch) {
-  model <- kknn(filter(pitches.model.data, zone == zone_id, stand == "R")$end ~ ., train = filter(pitches.model.data, zone == zone_id, stand == "R")[-c(5:8)], test = pitch, k = 14)
+# Regular the.big.guy for right hitters
+the.big.guy.R <- function(zone_id) {
+  model <- kknn(filter(pitches.model.data, zone == zone_id, stand == "R")$end ~ ., train = filter(pitches.model.data, zone == zone_id, stand == "R")[-c(5:8)], test = attempt.pitch, k = 14)
   m2 <- data.frame(model$prob)
   outcomes <- melt(m2)
-<<<<<<< HEAD
-  ggplot(outcomes, aes(x = variable, y = value, fill = variable)) + geom_bar(stat = "identity", colour = "black") + ylab("Probability") + xlab("Outcome") + ggtitle("Pitch Outcome Distribution")
-}
-
-pitches.test.features <- pitches.clean  %>% select(x, y, start_speed, end_speed, sz_top, sz_bot, pfx_x, pfx_z, px, pz, break_angle, break_length, spin_dir, spin_rate, end)
-
-
-
-
-=======
   outcomes$variable <- factor(outcomes$variable,levels(outcomes$variable)[c(11, 2, 6,1, 4, 9, 5, 8, 10, 3, 7)])
   ggplot(outcomes, aes(x = variable, y = value)) + scale_fill_manual(values = c("springgreen3", "springgreen3", "springgreen3","pink1", "sienna1", "sienna1", "sienna1", "sienna1","orangered2", "orangered2", "orangered2")) + geom_bar(stat = "identity", colour = "black", aes(fill = variable)) + ylab("Probability") + xlab("Outcome") + ggtitle("Pitch Outcome Distribution")
 }
->>>>>>> d7dd9894255bdea6112ebdd6ff6ed6d0016d8553
+
+# Heres the.big.guy for right hitters, allowing you to pass a pitcher name
+pitcher.find <- function(pitcher){
+  (pitcher)
+  pitches.model.data$match <- str_count(pitcher, pitches.model.data$pitcher_name) 
+  pitches.model.data %>% filter(match == 1)
+}
+
+the.big.guy.R.pitcher <- function(zone_id, pitcher = "NA") {
+  if (pitcher != "NA") {
+    relevant.data <- filter(pitcher.find(pitcher), zone == zone_id, stand == "R")
+    relevant.data <- relevant.data[,-9]
+  } else {
+    relevant.data <- filter(pitches.model.data, zone == zone_id, stand == "R")
+  }
+  model <- kknn(relevant.data$end ~ ., train = relevant.data[-c(5:8)], test = attempt.pitch, k = sqrt(nrow(relevant.data)))
+  m2 <- data.frame(model$prob)
+  outcomes <- melt(m2)
+  outcomes$variable <- factor(outcomes$variable,levels(outcomes$variable)[c(11, 2, 6,1, 4, 9, 5, 8, 10, 3, 7)])
+  ggplot(outcomes, aes(x = variable, y = value)) + scale_fill_manual(values = c("springgreen3", "springgreen3", "springgreen3","pink1", "sienna1", "sienna1", "sienna1", "sienna1","orangered2", "orangered2", "orangered2")) + geom_bar(stat = "identity", colour = "black", aes(fill = variable)) + ylab("Probability") + xlab("Outcome") + ggtitle("Pitch Outcome Distribution")
+}
+
