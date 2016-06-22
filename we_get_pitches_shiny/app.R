@@ -196,7 +196,7 @@ server <- shinyServer(function(input, output) {
   #The call for data
   #speed, break_angle, break_length, spin_rate, v$data
   
-<<<<<<< HEAD
+
   ##test.pitch <- reactive({predict(scale.train.object, data.frame("start_speed" = input$speed, "break_angle" = input$break_angle, "break_length" = input$break_length,
     ##                                 "spin_rate" = input$spin_rate))})
   
@@ -213,8 +213,8 @@ server <- shinyServer(function(input, output) {
   ##test.pitch <- reactive({predict(scale.train.object, data.frame("start_speed" = speed_new$data, "break_angle" = breakangle_new$data, "break_length" = breaklength_new$data,
     ##                                                            "spin_rate" = spin_new$data))})
   
-=======
->>>>>>> 27dc054b9235546ce6a977dbd1b7eb93541dd961
+
+
   test.pitch <- reactive({predict(scale.train.object, data.frame("start_speed" = speed_new$data, "pfx_z" = pfx_z_new$data, "break_length" = breaklength_new$data,
                                                                  "spin_rate" = spin_new$data))})
  
@@ -251,11 +251,11 @@ server <- shinyServer(function(input, output) {
     m2 <- data.frame(model$prob)
     outcomes <- melt(m2)
     outcomes$variable <- factor(outcomes$variable,levels(outcomes$variable)[c(11, 2, 6,1, 4, 9, 5, 8, 10, 3, 7)])
-<<<<<<< HEAD
+
     ggplot(outcomes, aes(x = variable, y = value)) + scale_fill_manual(values = c("springgreen3", "springgreen3", "springgreen3","pink1", "sienna1", "sienna1", "sienna1", "sienna1","orangered2", "orangered2", "orangered2")) + geom_bar(stat = "identity", colour = "black", aes(fill = variable)) + ylab("Probability") + xlab("Outcome") + ggtitle("Pitch Outcome Distribution - Lefty Hitters")
-=======
+
     ggplot(outcomes, aes(x = variable, y = value)) + scale_fill_manual(values = c("springgreen3", "springgreen3", "springgreen3","pink1", "sienna1", "sienna1", "sienna1", "sienna1","orangered2", "orangered2", "orangered2")) + geom_bar(stat = "identity", colour = "black", aes(fill = variable)) + ylab("Probability") + xlab("Outcome") + ggtitle("Pitch Outcome Distribution")
->>>>>>> 27dc054b9235546ce6a977dbd1b7eb93541dd961
+
   }
 
   

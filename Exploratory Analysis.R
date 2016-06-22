@@ -11,7 +11,7 @@ dat <- scrape(start = "2016-04-01", end = "2016-04-30")
 pitchFX <- plyr::join(dat$atbat, dat$pitch, by = c("num", "url"), type = "inner")
 
 # Clean data
-pitches.clean <- pitchFX
+pitches.clean <- season
 pitches.clean$break_y <- as.numeric(pitches.clean$break_y)
 pitches.clean$break_angle <- as.numeric(pitches.clean$break_angle)
 pitches.clean$break_length <- as.numeric(pitches.clean$break_length)
@@ -19,8 +19,9 @@ pitches.clean$stand <- as.factor(pitches.clean$stand)
 duplicates <- duplicated(t(pitches.clean))
 pitches.clean <- pitches.clean[,!duplicates]
 pitches.clean <- pitches.clean%>% filter(pitch_type != "PO", pitch_type != "IN")
+pitches.clean <- pitches.clean %>% filter(des != "Intent Ball", des != "Missed Bunt", des != "Pitchout", des != "Automatic Ball")
 pitches.clean$des <- as.factor(pitches.clean$des)
-levels(pitches.clean$des) <- c("Ball", "Ball", "Called Strike", "Foul", "Foul", "Foul", "Foul", "Ball", "In play, no out", "In play, out", "In play, no out", "Swinging Strike", "Swinging Strike", "Swinging Strike")
+levels(pitches.clean$des) <- c("Ball", "Ball", "Called Strike", "Foul", "Foul", "Foul", "Foul", "Ball", "In play, no out", "In play, out", "In play, no out", "Swinging Strike", "Swinging Strike")
 pitches.clean$des <- as.factor(pitches.clean$des)
 
 pitches.clean$idNum <- sample(1:nrow(pitches.clean), nrow(pitches.clean))
@@ -32,7 +33,7 @@ outcome <- pitches.clean  %>%  select(event, des, idNum)
 rows <- nrow(outcome)
 for (i in 1:rows){
   if (outcome[i,2] == "In play, out" | outcome[i,2] == "In play, no out"){
-    outcome[i,4] = outcome[i,1]
+    outcome[i,4] = as.character(outcome[i,1])
   }
   else{
     outcome[i,4] = as.character(outcome[i,2])
