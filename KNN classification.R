@@ -58,6 +58,8 @@ pitches.model.data <- na.omit(pitches.model.data)
 
 
 
+
+
 index <- createDataPartition(y = pitches.model.data$end, p=0.8)[[1]]
 pitches.train <- pitches.model.data[index,]
 pitches.test <- pitches.model.data[-index,]
@@ -89,6 +91,9 @@ the.big.guy <- function(zone_id, pitch) {
   outcomes <- melt(m2)
   ggplot(outcomes, aes(x = variable, y = value, fill = variable)) + geom_bar(stat = "identity", colour = "black") + ylab("Probability") + xlab("Outcome") + ggtitle("Pitch Outcome Distribution")
 }
+
+pitches.test.features <- pitches.clean  %>% select(x, y, start_speed, end_speed, sz_top, sz_bot, pfx_x, pfx_z, px, pz, break_angle, break_length, spin_dir, spin_rate, end)
+
 
 
 

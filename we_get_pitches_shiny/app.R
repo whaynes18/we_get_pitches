@@ -134,11 +134,10 @@ server <- shinyServer(function(input, output) {
   #test.data <- predict.preProcess(train.preProcess.object, test.pitch())
   
   the.big.guy <- function(zone_id) {
-    model <- kknn(filter(pitches.model.data, zone == zone_id)$end ~ start_speed + break_angle + break_length + spin_rate, train = filter(pitches.model.data, zone == zone_id)[-c(13,14)], test = test.pitch(), k = 14)
+    model <- kknn(filter(pitches.model.data, zone == zone_id)$end ~ start_speed + break_angle + break_length + spin_rate, train = filter(pitches.model.data, zone == zone_id)[-c(5,6)], test = test.pitch(), k = 14)
     m2 <- data.frame(model$prob)
     outcomes <- melt(m2)
     ggplot(outcomes, aes(x = variable, y = value, fill = variable)) + geom_bar(stat = "identity", colour = "black") + ylab("Probability") + xlab("Outcome") + ggtitle("Pitch Outcome Distribution")
-    
   }
   
   
