@@ -11,6 +11,7 @@ ui <- shinyUI(fluidPage(theme = shinytheme("spacelab"),
                         sidebarLayout(
                           sidebarPanel(
                             selectInput("pitcher_name", "Select Pitcher:", c("All", levels(pitches.outcomes$pitcher_name))),
+                            selectInput("other_pitcher", "Select Pitcher for Comparison:", c("None", "All", levels(pitches.outcomes$pitcher_name))),
                             ###############################################################################
                             ## buttons to select default pitch
                             actionButton('fastball', 'four-seam fastball'),
@@ -158,6 +159,19 @@ server <- shinyServer(function(input, output, session) {
     updateSliderInput(session, "break_length", value = fastballBreak)
     updateSliderInput(session, "pfx_z", value = fastballPfx)
     updateSliderInput(session, "spin_rate", value = fastballSpin)
+    
+    if (input$other_pitcher == "All"){
+      fastballOther <- pitches.clean %>% dplyr::filter(pitcher_name != input$pitcher_name) %>% dplyr::filter(pitch_type == "FF")
+    }
+    else{
+      fastballOther <- pitches.clean %>% dplyr::filter(pitcher_name == input$other_pitcher) %>% dplyr::filter(pitch_type == "FF")
+    }
+    
+    fastballOtherSpeed <- mean(fastballOther$start_speed)
+    fastballOtherBreak <- mean(fastballOther$break_length)
+    fastballOtherPfx <- mean(fastballOther$pfx_z)
+    fastballOtherSpin <- mean(fastballOther$spin_rate)
+    
   })
   
   observeEvent(input$slider, {
@@ -365,14 +379,20 @@ server <- shinyServer(function(input, output, session) {
   ########################################################  
   
   
-  the.big.guy.R.pitcher <- function(zone_id, pitcher = "All", button_pressed = FALSE) {
+  the.big.guy.R.pitcher <- function(zone_id, pitcher = "All", other_pitcher = "None") {
     if (pitcher != "All") {
-      if (button_pressed == TRUE) {
-        relevant.data <- filter(pitches.model.data, pitcher_name == pitcher, zone == zone_id, stand == "L")
-        relevant.data.2 <- filter(pitches.model.data, zone == zone_id, stand == "R")
+      if (other_pitcher != "None") {
+        if (other_pitcher == "All"){
+          relevant.data <- filter(pitches.model.data, pitcher_name == pitcher, zone == zone_id, stand == "R")
+          relevant.data.2 <- filter(pitches.model.data, pitcher_name != pitcher, zone == zone_id, stand == "R")
+        }
+        else{
+          relevant.data <- filter(pitches.model.data, pitcher_name == pitcher, zone == zone_id, stand == "R")
+          relevant.data.2 <- filter(pitches.model.data, pitcher_name == other_pitcher, zone == zone_id, stand == "R")
+        }
         
         model.pitcher <- kknn(relevant.data$end ~ ., train = relevant.data[-c(5:8)], test = test.pitch(), k = sqrt(nrow(relevant.data)))
-        model.all <- kknn(relevant.data.2$end ~ ., train = relevant.data.2[-c(5:8)], test = test.pitch(), k = sqrt(nrow(relevant.data.2)))
+        model.all <- kknn(relevant.data.2$end ~ ., train = relevant.data.2[-c(5:8)], test = attempt.pitch, k = sqrt(nrow(relevant.data.2)))
         
         pitcher.probs <- as.numeric(model.pitcher$prob)
         all.probs <- as.numeric(model.all$prob)
@@ -390,35 +410,41 @@ server <- shinyServer(function(input, output, session) {
         outcomes$outcomeLevels <- factor(all$outcomeLevels,levels(all$outcomeLevels)[c(10, 2, 4, 1, 5, 8, 3, 7, 9, 11, 6)])
         selected.pitcher$outcomeLevels <- factor(selected.pitcher$outcomeLevels,levels(selected.pitcher$outcomeLevels)[c(10, 2, 4, 1, 5, 8, 3, 7, 9, 11, 6)])
         
-        ggplot(outcomes, aes(x = outcomeLevels, y = value, fill = other)) + geom_bar(stat = "identity", position = "dodge") + scale_fill_manual(values = c("pink1", "springgreen3", "orangered2", "springgreen3", "sienna1", "orangered2", "sienna1", "sienna1", "orangered2", "springgreen3", "orangered2", "navajowhite1")) + ylab("Probability") + xlab("Outcome") + ggtitle("Comparison Pitch Outcome Distribution - Lefty Hitters")
+        ggplot(outcomes, aes(x = outcomeLevels, y = value, fill = other)) + geom_bar(stat = "identity", position = "dodge") + scale_fill_manual(values = c("pink1", "springgreen3", "orangered2", "springgreen3", "sienna1", "orangered2", "sienna1", "sienna1", "orangered2", "springgreen3", "orangered2", "navajowhite1")) + ylab("Probability") + xlab("Outcome") + ggtitle("Comparison Pitch Outcome Distribution - Righty Hitters")
       }
-      else {
+      else{
         relevant.data <- filter(pitches.model.data, pitcher_name == pitcher, zone == zone_id, stand == "R")
-        relevant.data <- relevant.data[,-9]
         model <- kknn(relevant.data$end ~ ., train = relevant.data[-c(5:8)], test = test.pitch(), k = sqrt(nrow(relevant.data)))
         m2 <- data.frame(model$prob)
         outcomes <- melt(m2)
         outcomes$variable <- factor(outcomes$variable,levels(outcomes$variable)[c(11, 2, 6,1, 4, 9, 5, 8, 10, 3, 7)])
-        ggplot(outcomes, aes(x = variable, y = value)) + scale_fill_manual(values = c("springgreen3", "springgreen3", "springgreen3","pink1", "sienna1", "sienna1", "sienna1", "sienna1","orangered2", "orangered2", "orangered2")) + geom_bar(stat = "identity", colour = "black", aes(fill = variable)) + ylab("Probability") + xlab("Outcome") + ggtitle("Pitch Outcome Distribution - Lefty Hitters")
+        ggplot(outcomes, aes(x = variable, y = value)) + scale_fill_manual(values = c("springgreen3", "springgreen3", "springgreen3","pink1", "sienna1", "sienna1", "sienna1", "sienna1","orangered2", "orangered2", "orangered2")) + geom_bar(stat = "identity", colour = "black", aes(fill = variable)) + ylab("Probability") + xlab("Outcome") + ggtitle("Pitch Outcome Distribution - Righty Hitters")
       }
-    } else {
+    } 
+    else {
       relevant.data <- filter(pitches.model.data, zone == zone_id, stand == "R")
       model <- kknn(relevant.data$end ~ ., train = relevant.data[-c(5:8)], test = test.pitch(), k = sqrt(nrow(relevant.data)))
       m2 <- data.frame(model$prob)
       outcomes <- melt(m2)
       outcomes$variable <- factor(outcomes$variable,levels(outcomes$variable)[c(11, 2, 6,1, 4, 9, 5, 8, 10, 3, 7)])
-      ggplot(outcomes, aes(x = variable, y = value)) + scale_fill_manual(values = c("springgreen3", "springgreen3", "springgreen3","pink1", "sienna1", "sienna1", "sienna1", "sienna1","orangered2", "orangered2", "orangered2")) + geom_bar(stat = "identity", colour = "black", aes(fill = variable)) + ylab("Probability") + xlab("Outcome") + ggtitle("Pitch Outcome Distribution - Lefty Hitters")
+      ggplot(outcomes, aes(x = variable, y = value)) + scale_fill_manual(values = c("springgreen3", "springgreen3", "springgreen3","pink1", "sienna1", "sienna1", "sienna1", "sienna1","orangered2", "orangered2", "orangered2")) + geom_bar(stat = "identity", colour = "black", aes(fill = variable)) + ylab("Probability") + xlab("Outcome") + ggtitle("Pitch Outcome Distribution - Righty Hitters")
     }
   }
   
-  the.big.guy.L.pitcher <- function(zone_id, pitcher = "All", button_pressed = FALSE) {
+  the.big.guy.L.pitcher <- function(zone_id, pitcher = "All", other_pitcher = "None") {
     if (pitcher != "All") {
-      if (button_pressed == TRUE) {
-        relevant.data <- filter(pitches.model.data, pitcher_name == pitcher, zone == zone_id, stand == "L")
-        relevant.data.2 <- filter(pitches.model.data, zone == zone_id, stand == "L")
+      if (other_pitcher != "None") {
+        if (other_pitcher == "All"){
+          relevant.data <- filter(pitches.model.data, pitcher_name == pitcher, zone == zone_id, stand == "L")
+          relevant.data.2 <- filter(pitches.model.data, pitcher_name != pitcher, zone == zone_id, stand == "L")
+        }
+        else{
+          relevant.data <- filter(pitches.model.data, pitcher_name == pitcher, zone == zone_id, stand == "L")
+          relevant.data.2 <- filter(pitches.model.data, pitcher_name == other_pitcher, zone == zone_id, stand == "L")
+        }
         
         model.pitcher <- kknn(relevant.data$end ~ ., train = relevant.data[-c(5:8)], test = test.pitch(), k = sqrt(nrow(relevant.data)))
-        model.all <- kknn(relevant.data.2$end ~ ., train = relevant.data.2[-c(5:8)], test = test.pitch(), k = sqrt(nrow(relevant.data.2)))
+        model.all <- kknn(relevant.data.2$end ~ ., train = relevant.data.2[-c(5:8)], test = attempt.pitch, k = sqrt(nrow(relevant.data.2)))
         
         pitcher.probs <- as.numeric(model.pitcher$prob)
         all.probs <- as.numeric(model.all$prob)
@@ -432,22 +458,22 @@ server <- shinyServer(function(input, output, session) {
         selected.pitcher$other <- selected.pitcher$outcomeLevels
         all$other <- "League Average"
         outcomes <- rbind(selected.pitcher, all)
-      
+        
         outcomes$outcomeLevels <- factor(all$outcomeLevels,levels(all$outcomeLevels)[c(10, 2, 4, 1, 5, 8, 3, 7, 9, 11, 6)])
         selected.pitcher$outcomeLevels <- factor(selected.pitcher$outcomeLevels,levels(selected.pitcher$outcomeLevels)[c(10, 2, 4, 1, 5, 8, 3, 7, 9, 11, 6)])
         
         ggplot(outcomes, aes(x = outcomeLevels, y = value, fill = other)) + geom_bar(stat = "identity", position = "dodge") + scale_fill_manual(values = c("pink1", "springgreen3", "orangered2", "springgreen3", "sienna1", "orangered2", "sienna1", "sienna1", "orangered2", "springgreen3", "orangered2", "navajowhite1")) + ylab("Probability") + xlab("Outcome") + ggtitle("Comparison Pitch Outcome Distribution - Lefty Hitters")
       }
-      else {
+      else{
         relevant.data <- filter(pitches.model.data, pitcher_name == pitcher, zone == zone_id, stand == "L")
-        relevant.data <- relevant.data[,-9]
         model <- kknn(relevant.data$end ~ ., train = relevant.data[-c(5:8)], test = test.pitch(), k = sqrt(nrow(relevant.data)))
         m2 <- data.frame(model$prob)
         outcomes <- melt(m2)
         outcomes$variable <- factor(outcomes$variable,levels(outcomes$variable)[c(11, 2, 6,1, 4, 9, 5, 8, 10, 3, 7)])
         ggplot(outcomes, aes(x = variable, y = value)) + scale_fill_manual(values = c("springgreen3", "springgreen3", "springgreen3","pink1", "sienna1", "sienna1", "sienna1", "sienna1","orangered2", "orangered2", "orangered2")) + geom_bar(stat = "identity", colour = "black", aes(fill = variable)) + ylab("Probability") + xlab("Outcome") + ggtitle("Pitch Outcome Distribution - Lefty Hitters")
       }
-    } else {
+    } 
+    else {
       relevant.data <- filter(pitches.model.data, zone == zone_id, stand == "L")
       model <- kknn(relevant.data$end ~ ., train = relevant.data[-c(5:8)], test = test.pitch(), k = sqrt(nrow(relevant.data)))
       m2 <- data.frame(model$prob)
@@ -461,11 +487,11 @@ server <- shinyServer(function(input, output, session) {
   
   ## Plot output
   output$pitch_plot <- renderPlot({
-    the.big.guy.R.pitcher(v$data, input$pitcher_name)
+    the.big.guy.R.pitcher(v$data, input$pitcher_name, input$other_pitcher)
   })
   
   output$pitch_plot_2 <- renderPlot({
-    the.big.guy.L.pitcher(v$data, input$pitcher_name)
+    the.big.guy.L.pitcher(v$data, input$pitcher_name, input$other_pitcher)
   })
   
   
