@@ -276,6 +276,7 @@ server <- shinyServer(function(input, output, session) {
       relevant.data <- relevant.data[,-9]
     } else {
       relevant.data <- filter(pitches.model.data, zone == zone_id, stand == "R")
+      # why don't we exclude the 9th column for this statement??
     }
     model <- kknn(relevant.data$end ~ ., train = relevant.data[-c(5:8)], test = test.pitch(), k = sqrt(nrow(relevant.data)))
     m2 <- data.frame(model$prob)

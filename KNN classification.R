@@ -62,7 +62,9 @@ pitches.outcomes$end <- as.factor(pitches.outcomes$end)
 
 # Select our relevant columns, split into train and test
 
-# Season2016Final data frame goes up to here
+# Season2016Final data frame goes up to here, so start running the code here.
+load("season2016Final.RData")
+pitches.clean <- pitches.outcomes
 
 pitches.model.data <- pitches.outcomes %>% dplyr::select(start_speed, break_length, spin_rate, pfx_z, zone, stand, pitcher_name, end)
 pitches.model.data <- na.omit(pitches.model.data)
