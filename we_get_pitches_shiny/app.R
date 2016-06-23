@@ -135,45 +135,14 @@ server <- shinyServer(function(input, output, session) {
   ########################################################  
   ## Default pitch values
   
-  
-  #rel.df <- reactive({
-  #  if (input$pitcher_name == "All"){
-  #    pop <- pitches.clean
-  #  }
-  #  else{
-  #    pop <- pitches.clean %>% dplyr::filter(pitcher_name == input$pitcher_name)
-  #  }
-  #})
-  
-   
-  
-  #fastball <- rel.df() %>% filter(pitch_type == "FF")
-#    fastballSpeed <- mean(fastball$start_speed)
-#    fastballBreak <- mean(fastball$break_length)
-#    fastballPfx <- mean(fastball$pfx_z)
-#    fastballSpin <- mean(fastball$spin_rate)
-  
-#    curveball <- rel.df() %>% filter(pitch_type == "CU")
-#    curveballSpeed <- mean(curveball$start_speed)
-#    curveballBreak <- mean(curveball$break_length)
-#    curveballPfx <- mean(curveball$pfx_z)
-#    curveballSpin <- mean(curveball$spin_rate)
-  
-#    slider <- rel.df() %>%  filter(pitch_type == "SL")
-#    sliderSpeed <- mean(slider$start_speed)
-#    sliderBreak <- mean(slider$break_length)
-#    sliderPfx <- mean(slider$pfx_z)
-#    sliderSpin <- mean(slider$spin_rate)
-  
-#    change <- rel.df() %>%  filter(pitch_type == "CH")
-#    changeSpeed <- mean(change$start_speed)
-#    changeBreak <- mean(change$break_length)
-#    changePfx <- mean(change$pfx_z)
-#    changeSpin <- mean(change$spin_rate)
-  
   observeEvent(input$fastball, {
     
-    fastball <- pitches.clean %>% dplyr::filter(pitcher_name == input$pitcher_name) %>% dplyr::filter(pitch_type == "FF")
+    if (input$pitcher_name == "All"){
+      fastball <- pitches.clean %>% dplyr::filter(pitch_type == "FF")
+    }
+    else{
+      fastball <- pitches.clean %>% dplyr::filter(pitcher_name == input$pitcher_name) %>% dplyr::filter(pitch_type == "FF")
+    }
     fastballSpeed <- mean(fastball$start_speed)
     fastballBreak <- mean(fastball$break_length)
     fastballPfx <- mean(fastball$pfx_z)
@@ -187,7 +156,12 @@ server <- shinyServer(function(input, output, session) {
   
   observeEvent(input$curve, {
     
-    curves <- pitches.clean %>% dplyr::filter(pitcher_name == input$pitcher_name) %>% dplyr::filter(pitch_type == "CU")
+    if (input$pitcher_name == "All"){
+      curves = pitches.clean %>% dplyr::filter(pitch_type == "CU")
+    }
+    else{
+      curves = pitches.clean %>% dplyr::filter(pitcher_name == input$pitcher_name) %>% dplyr::filter(pitch_type == "CU")
+    }
     curveballSpeed <- mean(curves$start_speed)
     curveballBreak <- mean(curves$break_length)
     curveballPfx <- mean(curves$pfx_z)
@@ -201,7 +175,12 @@ server <- shinyServer(function(input, output, session) {
   
   observeEvent(input$slider, {
     
-    sliders = pitches.clean %>% dplyr::filter(pitcher_name == input$pitcher_name) %>% dplyr::filter(pitch_type == "SL")
+    if (input$pitcher_name == "All"){
+      sliders = pitches.clean %>% dplyr::filter(pitch_type == "SL")
+    }
+    else{
+      sliders = pitches.clean %>% dplyr::filter(pitcher_name == input$pitcher_name) %>% dplyr::filter(pitch_type == "SL")
+    }
     sliderSpeed = mean(sliders$start_speed)
     sliderBreak = mean(sliders$break_length)
     sliderPfx = mean(sliders$pfx_z)
@@ -215,7 +194,12 @@ server <- shinyServer(function(input, output, session) {
   
   observeEvent(input$change, {
     
-    changes <- pitches.clean %>% dplyr::filter(pitcher_name == input$pitcher_name) %>% dplyr::filter(pitch_type == "CH")
+    if(input$pitcher_name == "All"){
+      changes = pitches.clean %>% dplyr::filter(pitch_type == "CH")
+    }
+    else{
+      changes = pitches.clean %>% dplyr::filter(pitcher_name == input$pitcher_name) %>% dplyr::filter(pitch_type == "CH")
+    }
     changeSpeed <- mean(changes$start_speed)
     changeBreak <- mean(changes$break_length)
     changePfx <- mean(changes$pfx_z)
