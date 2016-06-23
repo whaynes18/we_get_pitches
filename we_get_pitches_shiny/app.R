@@ -1,12 +1,15 @@
 library(shiny)
 library(shinythemes)
 library(kknn)
+library(shinyjs)
 # Define UI for application
 ui <- shinyUI(fluidPage(theme = shinytheme("spacelab"),
                         
+                       
+                        
                         # Application title
                         titlePanel("We Get Pitches"),
-                        
+                        useShinyjs(),
                         # Sidebar with a slider input for number of bins 
                         sidebarLayout(
                           sidebarPanel(
@@ -27,12 +30,17 @@ ui <- shinyUI(fluidPage(theme = shinytheme("spacelab"),
                             
                             ###############################################################################
                             ## Sliders for pitch characteristics
-                            sliderInput(inputId = "speed", "Pitch Speed (mph):", min = 50,max = 110, value = 90),
-                            ##sliderInput(inputId = "break_angle","Break Angle (in):",min = -50,max = 50,value = 0),
-                            sliderInput(inputId = "break_length", "Break Length (in):",min = 0,max = 15,value = 6),
-                            sliderInput(inputId = "pfx_z", "Vertical Change (in):",min = -12,max = 15,value = 6),
-                            sliderInput(inputId = "spin_rate","Spin Rate (rpm):", min = 0, max = 3000, value = 1500),
-                            
+                            uiOutput("speed_slider"),
+                            uiOutput("break_slider"),
+                            uiOutput("pfx_z_slider"),
+                            uiOutput("spin_rate_slider"),
+
+                            # create sliders in order to track the stats of the comparison pitcher. We do not 
+                            # actually want to see these sliders so we will hide them away.
+                            hidden(sliderInput(inputId = "otherSpeed", "Other Pitch Speed (mph):", min = 50, max = 100, value = 90)),
+                            hidden(sliderInput(inputId = "otherBreak_length", "Break Length (in):",min = 0,max = 15,value = 6)),
+                            hidden(sliderInput(inputId = "otherPfx_z", "Vertical Change (in):",min = -12,max = 15,value = 6)),
+                            hidden(sliderInput(inputId = "otherSpin_rate","Spin Rate (rpm):", min = 0, max = 3000, value = 1500)),
                             
                             ###############################################################################
                             ## Buttons for zones
@@ -77,11 +85,60 @@ server <- shinyServer(function(input, output, session) {
   ##################################################################
   ## Reactive values for zone and pitch characteristics
   v <- reactiveValues(data = 5)
+  
+  output$speed_slider <- renderUI({
+    if (input$pitcher_name == "All") {
+      max.speed = 110
+      min.speed = 60
+    } else {
+      max.speed <- max(filter(pitches.clean, pitcher_name == input$pitcher_name)$start_speed)
+      min.speed <- min(filter(pitches.clean, pitcher_name == input$pitcher_name)$start_speed)
+    }
+    sliderInput(inputId = "speed", "Pitch Speed (mph):", min = round(min.speed,1), max = round(max.speed,1), step = round((max.speed - min.speed)/30, 1), value = 90, round = TRUE)
+  })
+  
+  output$break_slider <- renderUI({
+    if (input$pitcher_name == "All") {
+      max.break = 15
+      min.break = 0
+    } else {
+      max.break <- max(filter(pitches.clean, pitcher_name == input$pitcher_name)$break_length)
+      min.break <- min(filter(pitches.clean, pitcher_name == input$pitcher_name)$break_length)
+    }
+    sliderInput(inputId = "break_length", "Break Length (in)", min = round(min.break,1), max = round(max.break,1), step = round((max.break - min.break)/30,1), value = 6, round = TRUE)
+  })
+  
+  output$pfx_z_slider <- renderUI({
+    if (input$pitcher_name == "All") {
+      max.break.height = 15
+      min.break.height = -12
+    } else {
+      max.break.height <- max(filter(pitches.clean, pitcher_name == input$pitcher_name)$pfx_z)
+      min.break.height <- min(filter(pitches.clean, pitcher_name == input$pitcher_name)$pfx_z)
+    }
+    sliderInput(inputId = "pfx_z", "Vertical Change (in)", min = round(min.break.height, 1),max = round(max.break.height,1), step = round((max.break.height - min.break.height)/30, 1), value = 6, round = TRUE)
+  })
+  
+  output$spin_rate_slider <- renderUI({
+    if (input$pitcher_name == "All") {
+      max.spin.rate = 3000
+      min.spin.rate = 0
+    } else {
+      max.spin.rate <- max(filter(pitches.clean, pitcher_name == input$pitcher_name)$spin_rate)
+      min.spin.rate <- min(filter(pitches.clean, pitcher_name == input$pitcher_name)$spin_rate)
+    }
+    sliderInput(inputId = "spin_rate", "Spin Rate (rpm)", min = round(min.spin.rate,1), max = round(max.spin.rate,1), step = round((max.spin.rate - min.spin.rate)/30, 1), value = 1500, round = TRUE)
+  })
+  
   speed_new <- reactiveValues(data = 90)
-  ##breakangle_new <- reactiveValues(data = 0)
   pfx_z_new <- reactiveValues(data = 6)
   breaklength_new <- reactiveValues(data = 6)
   spin_new <- reactiveValues(data = 1800)
+  speed_new2 <- reactiveValues(data = 90)
+  pfx_z_new2 <- reactiveValues(data = 6)
+  breaklength_new2 <- reactiveValues(data = 6)
+  spin_new2 <- reactiveValues(data = 1800)
+  
   
   ##################################################################
   
@@ -172,6 +229,11 @@ server <- shinyServer(function(input, output, session) {
     fastballOtherPfx <- mean(fastballOther$pfx_z)
     fastballOtherSpin <- mean(fastballOther$spin_rate)
     
+    updateSliderInput(session, "otherSpeed", value = fastballOtherSpeed)
+    updateSliderInput(session, "otherBreak_length", value = fastballOtherBreak)
+    updateSliderInput(session, "otherPfx_z", value = fastballOtherPfx)
+    updateSliderInput(session, "otherSpin_rate", value = fastballOtherSpin)
+    
   })
   
   observeEvent(input$slider, {
@@ -191,6 +253,23 @@ server <- shinyServer(function(input, output, session) {
     updateSliderInput(session, "break_length", value = sliderBreak)
     updateSliderInput(session, "pfx_z", value = sliderPfx)
     updateSliderInput(session, "spin_rate", value = sliderSpin)
+    
+    if (input$other_pitcher == "All"){
+      sliderOther <- pitches.clean %>% dplyr::filter(pitcher_name != input$pitcher_name) %>% dplyr::filter(pitch_type == "SL")
+    }
+    else{
+      sliderOther <- pitches.clean %>% dplyr::filter(pitcher_name == input$other_pitcher) %>% dplyr::filter(pitch_type == "SL")
+    }
+    
+    sliderOtherSpeed <- mean(sliderOther$start_speed)
+    sliderOtherBreak <- mean(sliderOther$break_length)
+    sliderOtherPfx <- mean(sliderOther$pfx_z)
+    sliderOtherSpin <- mean(sliderOther$spin_rate)
+    
+    updateSliderInput(session, "otherSpeed", value = sliderOtherSpeed)
+    updateSliderInput(session, "otherBreak_length", value = sliderOtherBreak)
+    updateSliderInput(session, "otherPfx_z", value = sliderOtherPfx)
+    updateSliderInput(session, "otherSpin_rate", value = sliderOtherSpin)
   })
   
   observeEvent(input$twoSeam, {
@@ -210,6 +289,23 @@ server <- shinyServer(function(input, output, session) {
     updateSliderInput(session, "break_length", value = twoSeamBreak)
     updateSliderInput(session, "pfx_z", value = twoSeamPfx)
     updateSliderInput(session, "spin_rate", value = twoSeamSpin)
+    
+    if (input$other_pitcher == "All"){
+      twoSeamOther <- pitches.clean %>% dplyr::filter(pitcher_name != input$pitcher_name) %>% dplyr::filter(pitch_type == "FT")
+    }
+    else{
+      twoSeamOther <- pitches.clean %>% dplyr::filter(pitcher_name == input$other_pitcher) %>% dplyr::filter(pitch_type == "FT")
+    }
+    
+    twoSeamOtherSpeed <- mean(twoSeamOther$start_speed)
+    twoSeamOtherBreak <- mean(twoSeamOther$break_length)
+    twoSeamOtherPfx <- mean(twoSeamOther$pfx_z)
+    twoSeamOtherSpin <- mean(twoSeamOther$spin_rate)
+    
+    updateSliderInput(session, "otherSpeed", value = twoSeamOtherSpeed)
+    updateSliderInput(session, "otherBreak_length", value = twoSeamOtherBreak)
+    updateSliderInput(session, "otherPfx_z", value = twoSeamOtherPfx)
+    updateSliderInput(session, "otherSpin_rate", value = twoSeamOtherSpin)
   })
   
   observeEvent(input$change, {
@@ -229,6 +325,23 @@ server <- shinyServer(function(input, output, session) {
     updateSliderInput(session, "break_length", value = changeBreak)
     updateSliderInput(session, "pfx_z", value = changePfx)
     updateSliderInput(session, "spin_rate", value = changeSpin)
+    
+    if (input$other_pitcher == "All"){
+      changeOther <- pitches.clean %>% dplyr::filter(pitcher_name != input$pitcher_name) %>% dplyr::filter(pitch_type == "CH")
+    }
+    else{
+      changeOther <- pitches.clean %>% dplyr::filter(pitcher_name == input$other_pitcher) %>% dplyr::filter(pitch_type == "CH")
+    }
+    
+    changeOtherSpeed <- mean(changeOther$start_speed)
+    changeOtherBreak <- mean(changeOther$break_length)
+    changeOtherPfx <- mean(changeOther$pfx_z)
+    changeOtherSpin <- mean(changeOther$spin_rate)
+    
+    updateSliderInput(session, "otherSpeed", value = changeOtherSpeed)
+    updateSliderInput(session, "otherBreak_length", value = changeOtherBreak)
+    updateSliderInput(session, "otherPfx_z", value = changeOtherPfx)
+    updateSliderInput(session, "otherSpin_rate", value = changeOtherSpin)
   })
   
   observeEvent(input$curve, {
@@ -248,6 +361,23 @@ server <- shinyServer(function(input, output, session) {
     updateSliderInput(session, "break_length", value = curveballBreak)
     updateSliderInput(session, "pfx_z", value = curveballPfx)
     updateSliderInput(session, "spin_rate", value = curveballSpin)
+    
+    if (input$other_pitcher == "All"){
+      curveOther <- pitches.clean %>% dplyr::filter(pitcher_name != input$pitcher_name) %>% dplyr::filter(pitch_type == "CU")
+    }
+    else{
+      curveOther <- pitches.clean %>% dplyr::filter(pitcher_name == input$other_pitcher) %>% dplyr::filter(pitch_type == "CU")
+    }
+    
+    curveOtherSpeed <- mean(curveOther$start_speed)
+    curveOtherBreak <- mean(curveOther$break_length)
+    curveOtherPfx <- mean(curveOther$pfx_z)
+    curveOtherSpin <- mean(curveOther$spin_rate)
+    
+    updateSliderInput(session, "otherSpeed", value = curveOtherSpeed)
+    updateSliderInput(session, "otherBreak_length", value = curveOtherBreak)
+    updateSliderInput(session, "otherPfx_z", value = curveOtherPfx)
+    updateSliderInput(session, "otherSpin_rate", value = curveOtherSpin)
   })
   
   observeEvent(input$sinker, {
@@ -267,6 +397,23 @@ server <- shinyServer(function(input, output, session) {
     updateSliderInput(session, "break_length", value = sinkerBreak)
     updateSliderInput(session, "pfx_z", value = sinkerPfx)
     updateSliderInput(session, "spin_rate", value = sinkerSpin)
+    
+    if (input$other_pitcher == "All"){
+      sinkerOther <- pitches.clean %>% dplyr::filter(pitcher_name != input$pitcher_name) %>% dplyr::filter(pitch_type == "SI")
+    }
+    else{
+      sinkerOther <- pitches.clean %>% dplyr::filter(pitcher_name == input$other_pitcher) %>% dplyr::filter(pitch_type == "SI")
+    }
+    
+    sinkerOtherSpeed <- mean(sinkerOther$start_speed)
+    sinkerOtherBreak <- mean(sinkerOther$break_length)
+    sinkerOtherPfx <- mean(sinkerOther$pfx_z)
+    sinkerOtherSpin <- mean(sinkerOther$spin_rate)
+    
+    updateSliderInput(session, "otherSpeed", value = sinkerOtherSpeed)
+    updateSliderInput(session, "otherBreak_length", value = sinkerOtherBreak)
+    updateSliderInput(session, "otherPfx_z", value = sinkerOtherPfx)
+    updateSliderInput(session, "otherSpin_rate", value = sinkerOtherSpin)
   })
   
   observeEvent(input$cutter, {
@@ -286,6 +433,23 @@ server <- shinyServer(function(input, output, session) {
     updateSliderInput(session, "break_length", value = cutterBreak)
     updateSliderInput(session, "pfx_z", value = cutterPfx)
     updateSliderInput(session, "spin_rate", value = cutterSpin)
+    
+    if (input$other_pitcher == "All"){
+      cutterOther <- pitches.clean %>% dplyr::filter(pitcher_name != input$pitcher_name) %>% dplyr::filter(pitch_type == "FC")
+    }
+    else{
+      cutterOther <- pitches.clean %>% dplyr::filter(pitcher_name == input$other_pitcher) %>% dplyr::filter(pitch_type == "FC")
+    }
+    
+    cutterOtherSpeed <- mean(cutterOther$start_speed)
+    cutterOtherBreak <- mean(cutterOther$break_length)
+    cutterOtherPfx <- mean(cutterOther$pfx_z)
+    cutterOtherSpin <- mean(cutterOther$spin_rate)
+    
+    updateSliderInput(session, "otherSpeed", value = cutterOtherSpeed)
+    updateSliderInput(session, "otherBreak_length", value = cutterOtherBreak)
+    updateSliderInput(session, "otherPfx_z", value = cutterOtherPfx)
+    updateSliderInput(session, "otherSpin_rate", value = cutterOtherSpin)
   })
   
   observeEvent(input$knuckleCurve, {
@@ -305,6 +469,23 @@ server <- shinyServer(function(input, output, session) {
     updateSliderInput(session, "break_length", value = knuckleCurveBreak)
     updateSliderInput(session, "pfx_z", value = knuckleCurvePfx)
     updateSliderInput(session, "spin_rate", value = knuckleCurveSpin)
+    
+    if (input$other_pitcher == "All"){
+      knuckleCurveOther <- pitches.clean %>% dplyr::filter(pitcher_name != input$pitcher_name) %>% dplyr::filter(pitch_type == "KC")
+    }
+    else{
+      knuckleCurveOther <- pitches.clean %>% dplyr::filter(pitcher_name == input$other_pitcher) %>% dplyr::filter(pitch_type == "KC")
+    }
+    
+    knuckleCurveOtherSpeed <- mean(knuckleCurveOther$start_speed)
+    knuckleCurveOtherBreak <- mean(knuckleCurveOther$break_length)
+    knuckleCurveOtherPfx <- mean(knuckleCurveOther$pfx_z)
+    knuckleCurveOtherSpin <- mean(knuckleCurveOther$spin_rate)
+    
+    updateSliderInput(session, "otherSpeed", value = knuckleCurveOtherSpeed)
+    updateSliderInput(session, "otherBreak_length", value = knuckleCurveOtherBreak)
+    updateSliderInput(session, "otherPfx_z", value = knuckleCurveOtherPfx)
+    updateSliderInput(session, "otherSpin_rate", value = knuckleCurveOtherSpin)
   })
   
   observeEvent(input$knuckleball, {
@@ -324,6 +505,23 @@ server <- shinyServer(function(input, output, session) {
     updateSliderInput(session, "break_length", value = knuckleballBreak)
     updateSliderInput(session, "pfx_z", value = knuckleballPfx)
     updateSliderInput(session, "spin_rate", value = knuckleballSpin)
+    
+    if (input$other_pitcher == "All"){
+      knuckleballOther <- pitches.clean %>% dplyr::filter(pitcher_name != input$pitcher_name) %>% dplyr::filter(pitch_type == "KN")
+    }
+    else{
+      knuckleballOther <- pitches.clean %>% dplyr::filter(pitcher_name == input$other_pitcher) %>% dplyr::filter(pitch_type == "KN")
+    }
+    
+    knuckleballOtherSpeed <- mean(knuckleballOther$start_speed)
+    knuckleballOtherBreak <- mean(knuckleballOther$break_length)
+    knuckleballOtherPfx <- mean(knuckleballOther$pfx_z)
+    knuckleballOtherSpin <- mean(knuckleballOther$spin_rate)
+    
+    updateSliderInput(session, "otherSpeed", value = knuckleballOtherSpeed)
+    updateSliderInput(session, "otherBreak_length", value = knuckleballOtherBreak)
+    updateSliderInput(session, "otherPfx_z", value = knuckleballOtherPfx)
+    updateSliderInput(session, "otherSpin_rate", value = knuckleballOtherSpin)
   })
   
   observeEvent(input$eephus, {
@@ -343,6 +541,23 @@ server <- shinyServer(function(input, output, session) {
     updateSliderInput(session, "break_length", value = eephusBreak)
     updateSliderInput(session, "pfx_z", value = eephusPfx)
     updateSliderInput(session, "spin_rate", value = eephusSpin)
+    
+    if (input$other_pitcher == "All"){
+      eephusOther <- pitches.clean %>% dplyr::filter(pitcher_name != input$pitcher_name) %>% dplyr::filter(pitch_type == "EP")
+    }
+    else{
+      eephusOther <- pitches.clean %>% dplyr::filter(pitcher_name == input$other_pitcher) %>% dplyr::filter(pitch_type == "EP")
+    }
+    
+    eephusOtherSpeed <- mean(eephusOther$start_speed)
+    eephusOtherBreak <- mean(eephusOther$break_length)
+    eephusOtherPfx <- mean(eephusOther$pfx_z)
+    eephusOtherSpin <- mean(eephusOther$spin_rate)
+    
+    updateSliderInput(session, "otherSpeed", value = eephusOtherSpeed)
+    updateSliderInput(session, "otherBreak_length", value = eephusOtherBreak)
+    updateSliderInput(session, "otherPfx_z", value = eephusOtherPfx)
+    updateSliderInput(session, "otherSpin_rate", value = eephusOtherSpin)
   })
  
   
@@ -352,22 +567,33 @@ server <- shinyServer(function(input, output, session) {
     speed_new$data <- input$speed
   })
   
-  ##observeEvent(input$break_angle, {
-  ##breakangle_new$data <- input$break_angle
-  ##})
+  observeEvent(input$otherSpeed, {
+    speed_new2$data <- input$otherSpeed
+  })
   
   observeEvent(input$break_length, {
     breaklength_new$data <- input$break_length
+  })
+  
+  observeEvent(input$otherBreak_length, {
+    breaklength_new2$data <- input$otherBreak_length
   })
   
   observeEvent(input$pfx_z, {
     pfx_z_new$data <- input$pfx_z
   })
   
+  observeEvent(input$otherPfx_z, {
+    pfx_z_new2$data <- input$otherPfx_z
+  })
+  
   observeEvent(input$spin_rate, {
     spin_new$data <- input$spin_rate
   })
   
+  observeEvent(input$otherSpin_rate, {
+    spin_new2$data <- input$otherSpin_rate
+  })
   
   ########################################################  
   #The call for data
@@ -375,6 +601,8 @@ server <- shinyServer(function(input, output, session) {
   test.pitch <- reactive({predict(scale.train.object, data.frame("start_speed" = speed_new$data, "pfx_z" = pfx_z_new$data, "break_length" = breaklength_new$data,
                                                                  "spin_rate" = spin_new$data))})
   
+  test.pitch2 <- reactive({predict(scale.train.object, data.frame("start_speed" = speed_new2$data, "pfx_z" = pfx_z_new2$data, "break_length" = breaklength_new2$data,
+                                                                 "spin_rate" = spin_new2$data))})
   
   ########################################################  
   
@@ -392,7 +620,7 @@ server <- shinyServer(function(input, output, session) {
         }
         
         model.pitcher <- kknn(relevant.data$end ~ ., train = relevant.data[-c(5:8)], test = test.pitch(), k = sqrt(nrow(relevant.data)))
-        model.all <- kknn(relevant.data.2$end ~ ., train = relevant.data.2[-c(5:8)], test = attempt.pitch, k = sqrt(nrow(relevant.data.2)))
+        model.all <- kknn(relevant.data.2$end ~ ., train = relevant.data.2[-c(5:8)], test = test.pitch2(), k = sqrt(nrow(relevant.data.2)))
         
         pitcher.probs <- as.numeric(model.pitcher$prob)
         all.probs <- as.numeric(model.all$prob)
@@ -444,7 +672,7 @@ server <- shinyServer(function(input, output, session) {
         }
         
         model.pitcher <- kknn(relevant.data$end ~ ., train = relevant.data[-c(5:8)], test = test.pitch(), k = sqrt(nrow(relevant.data)))
-        model.all <- kknn(relevant.data.2$end ~ ., train = relevant.data.2[-c(5:8)], test = attempt.pitch, k = sqrt(nrow(relevant.data.2)))
+        model.all <- kknn(relevant.data.2$end ~ ., train = relevant.data.2[-c(5:8)], test = test.pitch2(), k = sqrt(nrow(relevant.data.2)))
         
         pitcher.probs <- as.numeric(model.pitcher$prob)
         all.probs <- as.numeric(model.all$prob)
