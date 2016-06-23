@@ -13,10 +13,16 @@ ui <- shinyUI(fluidPage(theme = shinytheme("spacelab"),
                             selectInput("pitcher_name", "Select Pitcher:", c("All", levels(pitches.outcomes$pitcher_name))),
                             ###############################################################################
                             ## buttons to select default pitch
-                            actionButton('fastball', 'fastball'),
-                            actionButton('curve', 'curveball'),
+                            actionButton('fastball', 'four-seam fastball'),
                             actionButton('slider', 'slider'),
+                            actionButton('twoSeam', 'two-seam fastball'),
                             actionButton('change', 'change-up'),
+                            actionButton('curve', 'curveball'),
+                            actionButton('sinker','sinker'),
+                            actionButton('cutFast','cut fastball'),
+                            actionButton('knuckleCurve','knuckle-curve'),
+                            actionButton('knuckleBall', 'knuckleball'),
+                            actionButton('eephus','eephus'),
                             
                             ###############################################################################
                             ## Sliders for pitch characteristics

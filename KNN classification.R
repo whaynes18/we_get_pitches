@@ -65,8 +65,9 @@ pitches.outcomes$end <- as.factor(pitches.outcomes$end)
 # Season2016Final data frame goes up to here, so start running the code here.
 load("season2016Final.RData")
 pitches.outcomes$pitch_type <- as.character(pitches.outcomes$pitch_type)
-pitches.outcomes <- pitches.outcomes %>% dplyr::filter(pitch_type != "IN", pitch_type != "PO", pitch_type != "UN", pitch_type != "SC", pitch_type != "AB")
+pitches.outcomes <- pitches.outcomes %>% dplyr::filter(pitch_type != "IN", pitch_type != "PO", pitch_type != "UN", pitch_type != "SC", pitch_type != "AB", pitch_type != "FO")
 pitches.outcomes$pitch_type <- as.factor(pitches.outcomes$pitch_type)
+levels(pitches.outcomes$pitch_type) <- c("CH","CU","EP","FC","FF","SI","FT","KC","KN","SI","SL")
 pitches.clean <- pitches.outcomes
 
 
