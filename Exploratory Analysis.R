@@ -93,12 +93,6 @@ varImp(pitch.rpart)
 # Figure out the mean values of the four features for different types of pitches so that
 # we can have default values for our sliders
 
-pitcher.find <- function(pitcher){
-  (pitcher)
-  pitches.clean$match <- str_count(pitcher, pitches.clean$pitcher_name) 
-  pitches.clean %>% filter(match == 1)
-}
-
 hurlers <- pitches.clean %>% dplyr::select(pitcher_name, pitch_type, start_speed, break_length, pfx_z, spin_rate)
 hurlers$pitcher_name <- as.factor(hurlers$pitcher_name)
 hurlers$pitch_type <- as.factor(hurlers$pitch_type) 
