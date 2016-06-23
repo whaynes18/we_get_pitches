@@ -70,8 +70,6 @@ pitches.outcomes$pitch_type <- as.factor(pitches.outcomes$pitch_type)
 levels(pitches.outcomes$pitch_type) <- c("CH","CU","EP","FC","FF","SI","FT","KC","KN","SI","SL")
 pitches.clean <- pitches.outcomes
 
-
-
 pitches.model.data <- pitches.outcomes %>% dplyr::select(start_speed, break_length, spin_rate, pfx_z, zone, stand, pitcher_name, end)
 pitches.model.data <- na.omit(pitches.model.data)
 
