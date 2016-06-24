@@ -655,7 +655,7 @@ server <- shinyServer(function(input, output, session) {
       m2 <- data.frame(model$prob)
       outcomes <- melt(m2)
       outcomes$variable <- factor(outcomes$variable,levels(outcomes$variable)[c(11, 2, 6,1, 4, 9, 5, 8, 10, 3, 7)])
-      ggplot(outcomes, aes(x = variable, y = value)) + theme_bw()+ theme(axis.text.x = element_text(angle = 30, , hjust = 1), plot.title = element_text(size = 22, face = "bold"), axis.text = element_text(size = 13), axis.title = element_text(size = 19)) + guides(fill = FALSE) + scale_fill_manual(values = c("green3", "green3", "green3","yellow1", "blue3", "blue3", "blue3", "blue3","red3", "red3", "red3")) + geom_bar(stat = "identity", colour = "black", aes(fill = variable)) + ylab("Probability") + xlab("") + ggtitle("Pitch Outcome Distribution - Righty Hitters")
+      ggplot(outcomes, aes(x = variable, y = value)) + theme_bw()+ theme(axis.text.x = element_text(angle = 30, hjust = 1), plot.title = element_text(size = 22, face = "bold"), axis.text = element_text(size = 13), axis.title = element_text(size = 19)) + guides(fill = FALSE) + scale_fill_manual(values = c("green3", "green3", "green3","yellow1", "blue3", "blue3", "blue3", "blue3","red3", "red3", "red3")) + geom_bar(stat = "identity", colour = "black", aes(fill = variable)) + ylab("Probability") + xlab("") + ggtitle("Pitch Outcome Distribution - Righty Hitters")
     }
   }
   
