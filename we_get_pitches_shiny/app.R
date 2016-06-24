@@ -45,6 +45,7 @@ ui <- shinyUI(fluidPage(theme = shinytheme("spacelab"),
                             ###############################################################################
                             ## Buttons for zones
                             fluidRow(column(1, h4("Zone:"))),
+                            fluidRow(column(1, offset = 3, actionButton("all_zones", "All Zones"))),
                             fluidRow(
                               column(1, offset = 1, actionButton("zone_11", "11")),
                               column(2, offset = 4, actionButton("zone_12", "12"))),
@@ -84,7 +85,7 @@ server <- shinyServer(function(input, output, session) {
   
   ##################################################################
   ## Reactive values for zone and pitch characteristics
-  v <- reactiveValues(data = 5)
+  v <- reactiveValues(data = c(1:9, 11:14))
   
   output$speed_slider <- renderUI({
     if (input$pitcher_name == "All") {
@@ -195,6 +196,11 @@ server <- shinyServer(function(input, output, session) {
   observeEvent(input$zone_14, {
     v$data <- 14
   })
+  
+  observeEvent(input$all_zones, {
+    v$data <- c(1:9,11:14)
+  })
+  
   
   ########################################################  
   ## Default pitch values
@@ -698,7 +704,7 @@ server <- shinyServer(function(input, output, session) {
         m2 <- data.frame(model$prob)
         outcomes <- melt(m2)
         outcomes$variable <- factor(outcomes$variable,levels(outcomes$variable)[c(11, 2, 6,1, 4, 9, 5, 8, 10, 3, 7)])
-        ggplot(outcomes, aes(x = variable, y = value)) + theme_bw() + theme(axis.text.x = element_text(angle = 30, , hjust = 1), plot.title = element_text(size = 22, face = "bold"),axis.text = element_text(size = 13), axis.title = element_text(size = 19)) + guides(fill = FALSE) + scale_fill_manual(values = c("green3", "green3", "green3","yellow1", "blue3", "blue3", "blue3", "blue3","red3", "red3", "red3")) + geom_bar(stat = "identity", colour = "black", aes(fill = variable)) + ylab("Probability") + xlab("") + ggtitle("Pitch Outcome Distribution - Lefty Hitters")
+        ggplot(outcomes, aes(x = variable, y = value)) + theme_bw() + theme(axis.text.x = element_text(angle = 30, hjust = 1), plot.title = element_text(size = 22, face = "bold"),axis.text = element_text(size = 13), axis.title = element_text(size = 19)) + guides(fill = FALSE) + scale_fill_manual(values = c("green3", "green3", "green3","yellow1", "blue3", "blue3", "blue3", "blue3","red3", "red3", "red3")) + geom_bar(stat = "identity", colour = "black", aes(fill = variable)) + ylab("Probability") + xlab("") + ggtitle("Pitch Outcome Distribution - Lefty Hitters")
       }
     } 
     else {
