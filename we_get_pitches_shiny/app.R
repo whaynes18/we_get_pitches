@@ -2,6 +2,7 @@ library(shiny)
 library(shinythemes)
 library(kknn)
 library(shinyjs)
+library(dplyr)
 library(pitchRx)
 library(dplyr)
 library(magrittr)
@@ -10,11 +11,17 @@ library(cluster)
 library(caret)
 library(kknn)
 library(reshape2)
-load("season2016Final.RData")
+load("data/app.Rdata")
 
 # Define UI for application
 ui <- shinyUI(fluidPage(theme = shinytheme("spacelab"),
                         
+
+
+
+
+                        
+     
                         
                         
                         # Application title
@@ -92,6 +99,8 @@ server <- shinyServer(function(input, output, session) {
   #what you put into output object should be a render function
   #put braces around code ({ }) to pass code as unified block
   #observeEvent(input$click, {code})
+  
+  # Load Relevant Data
   
   ##################################################################
   ## Reactive values for zone and pitch characteristics
@@ -756,7 +765,7 @@ server <- shinyServer(function(input, output, session) {
         outcomes$outcomeLevels <- factor(all$outcomeLevels,levels(all$outcomeLevels)[c(10, 2, 4, 1, 5, 8, 3, 7, 9, 11, 6)])
         selected.pitcher$outcomeLevels <- factor(selected.pitcher$outcomeLevels,levels(selected.pitcher$outcomeLevels)[c(10, 2, 4, 1, 5, 8, 3, 7, 9, 11, 6)])
         
-        ggplot(outcomes, aes(x = outcomeLevels, y = value, fill = other)) + theme_bw() + theme(axis.text.x = element_text(angle = 30, hjust = 1), plot.title = element_text(size = 22, face = "bold"), axis.text = element_text(size = 13), axis.title = element_text(size = 19)) + guides(fill = FALSE) + geom_bar(colour = "black", stat = "identity", position = "dodge") + scale_fill_manual(values = c("yellow1", "green3", "red3", "green3", "blue3", "red3", "blue3", "blue3", "red3", "green3", "red3", "grey75")) + ylab("Probability") + xlab("") + ggtitle("Comparison Pitch Outcome Distribution - Lefty Hitters")
+        ggplot(outcomes, aes(x = outcomeLevels, y = value, fill = other)) + theme_bw() + theme(axis.text.x = element_text(angle = 30, hjust = 1), plot.title = element_text(size = 22, face = "bold"), axis.text = element_text(size = 13), axis.title = element_text(size = 19)) + guides(fill = FALSE) + geom_bar(colour = "black", stat = "identity", position = "dodge") + scale_fill_manual(values = c("yellow1", "green3", "blue3", "green3", "blue3", "red3", "blue3", "blue3", "red3", "green3", "red3", "grey75")) + ylab("Probability") + xlab("") + ggtitle("Comparison Pitch Outcome Distribution - Lefty Hitters")
       }
       else{
         if (zone_id == 0){
