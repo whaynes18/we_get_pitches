@@ -77,6 +77,9 @@ scale.train.object <- preProcess(pitches.model.data[,1:4])
 pitches.model.data[,1:4] <- scale(pitches.model.data[,1:4])
 pitches.model.data <- na.omit(pitches.model.data)
 
+
+
+
 #### ONLY RUN UP TO THIS POINT TO RUN SCRIPT
 
 
