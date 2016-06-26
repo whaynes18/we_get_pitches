@@ -2,7 +2,15 @@ library(shiny)
 library(shinythemes)
 library(kknn)
 library(shinyjs)
-pitches.outcomes <- read.csv("pitches.outcomes.csv", header=TRUE, check.names = FALSE)
+library(pitchRx)
+library(dplyr)
+library(magrittr)
+library(plyr)
+library(cluster)
+library(caret)
+library(kknn)
+library(reshape2)
+load("season2016Final.RData")
 
 # Define UI for application
 ui <- shinyUI(fluidPage(theme = shinytheme("spacelab"),
