@@ -15,15 +15,7 @@ load("data/app.Rdata")
 
 # Define UI for application
 ui <- shinyUI(fluidPage(theme = shinytheme("spacelab"),
-                        
 
-
-
-
-                        
-     
-                        
-                        
                         # Application title
                         titlePanel("We Get Pitches"),
                         useShinyjs(),
@@ -101,6 +93,8 @@ server <- shinyServer(function(input, output, session) {
   #observeEvent(input$click, {code})
   
   # Load Relevant Data
+  
+  
   
   ##################################################################
   ## Reactive values for zone and pitch characteristics
@@ -224,13 +218,43 @@ server <- shinyServer(function(input, output, session) {
   ########################################################  
   ## Default pitch values
   
-  observeEvent(input$fastball, {
+  observeEvent(input$pitcher_name, {
+    pitcher.df <- pitches.outcomes %>% dplyr::filter(pitcher_name == input$pitcher_name)
+    levels(pitcher.df$pitch_type) <- c("change", "curve", "eephus", "cutter", "fastball", "sinker", "twoSeam", "knuckleCurve", "knuckleball", "slider")
+    pitches.all <- levels(pitcher.df$pitch_type)
+    # These next two lines get it so that the levels of the pitch type have only the 
+    # specified pitchers pitch type
+    pitcher.df$pitch_type <- as.character(pitcher.df$pitch_type)
+    pitcher.df$pitch_type <- as.factor(pitcher.df$pitch_type)
+    pitches.specified <- levels(pitcher.df$pitch_type)
     
+    
+    if (input$pitcher_name != "All"){
+      # we first want to disable all pitches, in case they were enabled from a previous pitcher
+      for (pitch in pitches.all){
+        disable(pitch)
+      }
+      # then we want to enable the specific pitchers to a pitcher
+      for (pitch in pitches.specified){
+        enable(pitch)
+      }
+    }
+    else{
+      # if pitcher does = all, enable all pitches
+      for (pitch in pitches.all){
+        enable(pitch)
+      }
+    }
+  })
+  
+  observeEvent(input$fastball, {
+
     if (input$pitcher_name == "All"){
       fastball <- pitches.clean %>% dplyr::filter(pitch_type == "FF")
     }
     else{
       fastball <- pitches.clean %>% dplyr::filter(pitcher_name == input$pitcher_name) %>% dplyr::filter(pitch_type == "FF")
+      
     }
     fastballSpeed <- mean(fastball$start_speed)
     fastballBreak <- mean(fastball$break_length)
@@ -621,23 +645,6 @@ server <- shinyServer(function(input, output, session) {
   })
   
   ########################################################  
-  # Call the data up
-  
-  #pitches.outcomes$pitch_type <- as.character(pitches.outcomes$pitch_type)
-  #pitches.outcomes <- pitches.outcomes %>% dplyr::filter(pitch_type != "IN", pitch_type != "PO", pitch_type != "UN", pitch_type != "SC", pitch_type != "AB", pitch_type != "FO")
-  #pitches.outcomes$pitch_type <- as.factor(pitches.outcomes$pitch_type)
-  #levels(pitches.outcomes$pitch_type) <- c("CH","CU","EP","FC","FF","SI","FT","KC","KN","SI","SL")
-  #pitches.clean <- pitches.outcomes
-  
-  #pitches.model.data <- pitches.outcomes %>% dplyr::select(start_speed, break_length, spin_rate, pfx_z, zone, stand, pitcher_name, end)
-  #pitches.model.data <- na.omit(pitches.model.data)
-  
-  #scale.train.object <- preProcess(pitches.model.data[,1:4])
-  #pitches.model.data[,1:4] <- scale(pitches.model.data[,1:4])
-  #pitches.model.data <- na.omit(pitches.model.data)
-  
-  #The call for data
-  
  
   test.pitch <- reactive({predict(scale.train.object, data.frame("start_speed" = speed_new$data, "pfx_z" = pfx_z_new$data, "break_length" = breaklength_new$data,
                                                                  "spin_rate" = spin_new$data))})
@@ -645,6 +652,9 @@ server <- shinyServer(function(input, output, session) {
   test.pitch2 <- reactive({predict(scale.train.object, data.frame("start_speed" = speed_new2$data, "pfx_z" = pfx_z_new2$data, "break_length" = breaklength_new2$data,
                                                                  "spin_rate" = spin_new2$data))})
   ########################################################  
+  
+  #pitch.disable <- function()
+  
   
   
   the.big.guy.pitcher <- function(zone_id, pitcher = "All", other_pitcher = "None", stance) {
