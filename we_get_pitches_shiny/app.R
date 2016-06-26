@@ -2,10 +2,12 @@ library(shiny)
 library(shinythemes)
 library(kknn)
 library(shinyjs)
+pitches.outcomes <- read.csv("pitches.outcomes.csv", header=TRUE, check.names = FALSE)
+
 # Define UI for application
 ui <- shinyUI(fluidPage(theme = shinytheme("spacelab"),
                         
-                       
+                        
                         
                         # Application title
                         titlePanel("We Get Pitches"),
@@ -602,14 +604,29 @@ server <- shinyServer(function(input, output, session) {
   })
   
   ########################################################  
+  # Call the data up
+  
+  #pitches.outcomes$pitch_type <- as.character(pitches.outcomes$pitch_type)
+  #pitches.outcomes <- pitches.outcomes %>% dplyr::filter(pitch_type != "IN", pitch_type != "PO", pitch_type != "UN", pitch_type != "SC", pitch_type != "AB", pitch_type != "FO")
+  #pitches.outcomes$pitch_type <- as.factor(pitches.outcomes$pitch_type)
+  #levels(pitches.outcomes$pitch_type) <- c("CH","CU","EP","FC","FF","SI","FT","KC","KN","SI","SL")
+  #pitches.clean <- pitches.outcomes
+  
+  #pitches.model.data <- pitches.outcomes %>% dplyr::select(start_speed, break_length, spin_rate, pfx_z, zone, stand, pitcher_name, end)
+  #pitches.model.data <- na.omit(pitches.model.data)
+  
+  #scale.train.object <- preProcess(pitches.model.data[,1:4])
+  #pitches.model.data[,1:4] <- scale(pitches.model.data[,1:4])
+  #pitches.model.data <- na.omit(pitches.model.data)
+  
   #The call for data
+  
  
   test.pitch <- reactive({predict(scale.train.object, data.frame("start_speed" = speed_new$data, "pfx_z" = pfx_z_new$data, "break_length" = breaklength_new$data,
                                                                  "spin_rate" = spin_new$data))})
   
   test.pitch2 <- reactive({predict(scale.train.object, data.frame("start_speed" = speed_new2$data, "pfx_z" = pfx_z_new2$data, "break_length" = breaklength_new2$data,
                                                                  "spin_rate" = spin_new2$data))})
-  
   ########################################################  
   
   
@@ -688,6 +705,7 @@ server <- shinyServer(function(input, output, session) {
   }
   
   the.big.guy.L.pitcher <- function(zone_id, pitcher = "All", other_pitcher = "None") {
+  
     if (pitcher != "All") {
       if (other_pitcher != "None") {
         if (zone_id == 0){
@@ -762,6 +780,7 @@ server <- shinyServer(function(input, output, session) {
   }
   
   ########################################################  
+  
   
   ## Plot output
   output$pitch_plot <- renderPlot({

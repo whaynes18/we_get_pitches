@@ -50,17 +50,17 @@ pitches.outcomes$end <- as.factor(pitches.outcomes$end)
 # Select our relevant columns, split into train and test
 pitches.clean <- pitches.outcomes
 
-pitches.test.features <- pitches.clean  %>% select(start_speed, end_speed, sz_top, sz_bot, pfx_x, pfx_z, break_angle, break_length, break_y, spin_dir, spin_rate, end)
+pitches.test.features <- pitches.clean  %>% select(start_speed, end_speed, pfx_x, pfx_z, break_angle, break_length, break_y, spin_dir, spin_rate, end)
 
 TRAINCONTROL <- trainControl(method = "cv", repeats = 3, verboseIter = F, summaryFunction = multiClassSummary)
 
 # scale the data
 ends <- pitches.test.features$end
-pitches.test.features2 <- scale(pitches.test.features[,1:10])
+pitches.test.features2 <- scale(pitches.test.features[,1:9])
 pitches.test.features2 <- data.frame(pitches.test.features2)
 pitches.test.features2$end <- ends
 
-pitch.rpart <- train(end ~ ., data = pitches.test.features, method = "rpart", control = rpart.control(minsplit = 10, minbucket = 3), trControl = TRAINCONTROL)
+pitch.rpart <- train(end ~ ., data = pitches.test.features, method = "rpart", control = rpart.control(cp = 0.03, minsplit = 10, minbucket = 3), trControl = TRAINCONTROL)
 varImp(pitch.rpart)
 
 # The four most important factors are pfx_z, break_length, start_speed, spin_rate).

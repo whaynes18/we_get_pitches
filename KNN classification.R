@@ -63,6 +63,7 @@ pitches.outcomes$end <- as.factor(pitches.outcomes$end)
 # Select our relevant columns, split into train and test
 
 # Season2016Final data frame goes up to here, so start running the code here.
+
 load("season2016Final.RData")
 pitches.outcomes$pitch_type <- as.character(pitches.outcomes$pitch_type)
 pitches.outcomes <- pitches.outcomes %>% dplyr::filter(pitch_type != "IN", pitch_type != "PO", pitch_type != "UN", pitch_type != "SC", pitch_type != "AB", pitch_type != "FO")
