@@ -1,0 +1,9 @@
+name: we_get_pitches_shiny
+account: lshatkin
+server: shinyapps.io
+appId: 110571
+bundleId: 489714
+url: https://lshatkin.shinyapps.io/we_get_pitches_shiny/
+when: 1466971670.87967
+asMultiple: FALSE
+asStatic: FALSE

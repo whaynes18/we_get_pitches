@@ -124,5 +124,170 @@ final$Pitch_type <- lapply(final$`Pitcher and Type`, function(n) {str_split(n, '
 # final <- na.omit(final)
 
 
+### FINDING ZONES AND USING X,Y VALUES IN OUR MODEL
+
+pitches.model.data <- pitches.outcomes %>% dplyr::select(start_speed, break_length, spin_rate, pfx_z, x, y, stand, pitcher_name, end)
+pitches.model.data <- na.omit(pitches.model.data)
+
+scale.train.object <- preProcess(pitches.model.data[,1:4])
+pitches.model.data[,1:4] <- scale(pitches.model.data[,1:4])
+pitches.model.data <- na.omit(pitches.model.data)
+
+pitches.outcomes$zone <- as.factor(pitches.outcomes$zone)
+ggplot(pitches.outcomes, aes(x = x, y = y)) + geom_point(aes(color = zone)) + scale_x_continuous(limits = c(80, 154)) + scale_y_continuous(limits = c(127,215)) + scale_color_manual(values = c("blue","yellow","blue","yellow","blue","yellow", "blue","yellow", "blue", "grey52","grey14","grey14","grey52")) + 
+  geom_vline(xintercept = c(90, 108, 126, 144), color = "red", size = 2) + geom_hline(yintercept = c(195,179,163,147), size = 2, color = "red") + geom_vline(xintercept = 117, size = 1.5, color = "white") + geom_hline(yintercept = 171, size = 1.5, color = "white")
+
+# this graph shows me that the center of the strike zone is at the coordinates (117,171). Now i will make radial coordiantes based on this center
+# so, this means that a strike zone is 18 units wide and 16 units high. I am going to use this estimation
+# to CREATE THE RADIUS FOR THE CIRCLE THAT WILL CLOSE OFF DATA for the further model. I am going to 
+# make the radius equal to 16. This will capture all the height in an artificial zone.
+
+pitches.outcomes$radius = sqrt((pitches.outcomes$x - 117)^2 + (pitches.outcomes$y - 171)^2)
+tail(sort(pitches.outcomes$radius), n = 30)
+
+# filter out the weird super outlier pitches
+pitches.outcomes2 <- pitches.outcomes %>% filter(radius < 160)
+
+# plot that shows the radius and the strike zone (red lines)
+ggplot(pitches.outcomes2, aes(x = x, y = y)) + scale_x_continuous(limits = c(78, 156)) + scale_y_continuous(limits = c(127,215)) +  geom_point(aes(color = radius)) + scale_color_gradient(low = "white", high = "grey7", limits = c(0, 60)) + 
+  geom_vline(xintercept = c(90, 144), color = "red") + geom_hline(yintercept = c(195, 147), color = "red") # + geom_vline(xintercept = 117, size = 1.5, color = "white") + geom_hline(yintercept = 171, size = 1.5, color = "white")
+
+pitch.example <- pitches.outcomes[16,]  
+  
+create_radii <- function(pitch){
+  x_value <- pitch$x
+  y_value <- pitch$y
+  pitches.model.data$radius <- sqrt((pitches.model.data$x - x_value) ^ 2 + (pitches.model.data$y - y_value) ^ 2)
+  pitches.model.data
+}
+
+# this makes the given point the center of the graph. must save it into a new graph though
+pop <- create_radii(pitch.example)
+
+ggplot(pop, aes(x = x, y = y)) + scale_x_continuous(limits = c(78, 156)) + scale_y_continuous(limits = c(127,215)) +  geom_point(aes(color = radius)) + scale_color_gradient(low = "white", high = "grey7", limits = c(0, 8)) + 
+  geom_vline(xintercept = c(90, 144), color = "red") + geom_hline(yintercept = c(195, 147), color = "red") + geom_vline(xintercept = 117, size = 1.5, color = "white") + geom_hline(yintercept = 171, size = 1.5, color = "white")
+
+# nice ^
+
+
+# make pitches either in the strikeZone or not in the strikeZone
+ncols <- length(pitches.clean)
+for (i in 1:nrow(pitches.clean)){
+  if ((pitches.clean[i,12] < 144) & (pitches.clean[i,12] > 90) & (pitches.clean[i,13] > 147) & (pitches.clean[i,13] < 195)){
+    pitches.clean[i, ncols + 1] = 1
+  }
+  else{
+    pitches.clean[i, ncols + 1] = 0
+  }
+}
+finalColName <- paste("V", (ncols + 1), sep = "")
+pitches.clean <- pitches.clean  %>% dplyr::rename(strikeZone = finalColName)
+pitches.clean$strikeZone <- as.factor(pitches.clean$strikeZone)
+
+# plot the stike zone essentially
+ggplot(pitches.clean, aes(x=x, y=y)) + geom_point(aes(color = strikeZone)) + scale_color_manual(values = c("black", "white"))+ scale_x_continuous(limits = c(78, 156)) + 
+  scale_y_continuous(limits = c(127,215))
+# so, this gives us all the points in the data frame, and gives us a pretty accurate strike zone. But, it would not
+# look very clean with the corners missing points and what not. So, I will make a data frame that has every possible point
+# in a certain range, then assign these points to strike zones. This should be cleaner. Also going to be huge, so
+# lets see if its even worth it.
+
+x_vals <- seq(78,156,1)
+y_vals <- seq(127,215,1)
+y_vals <- rep(y_vals, each = length(x_vals))
+
+coordinates <- data.frame(y_vals, x_vals)
+ncols <- length(coordinates)
+for (i in 1:nrow(coordinates)){
+  if ((coordinates[i,2] < 144) & (coordinates[i,2] > 90) & (coordinates[i,1] > 147) & (coordinates[i,1] < 195)){
+    coordinates[i, ncols + 1] = 1
+  }
+  else{
+    coordinates[i, ncols + 1] = 0
+  }
+}
+finalColName <- paste("V", (ncols + 1), sep = "")
+coordinates <- coordinates  %>% dplyr::rename(strikeZone = V3)
+coordinates$strikeZone <- as.factor(coordinates$strikeZone)
+ggplot(coordinates, aes(x = x_vals, y = y_vals)) + geom_point(aes(color = strikeZone)) + scale_color_manual(values = c("black", "white"))
+#SAVE COORDINATES AS AN RDATA FILE
+# also, do more exploring. Earlier in this file, i tried to see if location within a zone
+# matttered for the pitch, and it did not. but, we can check this again. see if location within
+# the radial zone affects the outcome of the pitch
+
+# try the big guy using radius, rather than zone.
+the.big.guy.pitcher.radii <- function(pitcher = "All", other_pitcher = "None", stance, pitch) {
+  
+  # create radius values from the given pitch (its x and y values), then filter to only values
+  # with a radius of less than 8
+  
+  # WAIT: THIS MAY CAUSE AN ERROR BECAUSE THE X AND Y VALUES ARE SCALED? OR MAYBE THEY ARENT? IDK
+  pitches.model.data <- create_radii(pitch) %>% dplyr::filter(radius < 8)
+  
+  if (stance == "R"){
+    title = "Comparison Pitch Outcome Distribution - Righty Hitters"
+  }
+  else{
+    title = "Comparison Pitch Outcome Distribution - Lefty Hitters"
+  }
+  
+  if (pitcher != "All") {
+    if (other_pitcher != "None") {
+      if (other_pitcher == "All"){
+        relevant.data <- filter(pitches.model.data, pitcher_name == pitcher, stand == stance)
+        relevant.data.2 <- filter(pitches.model.data, pitcher_name != pitcher, stand == stance)
+      }
+      else{
+        relevant.data <- filter(pitches.model.data, pitcher_name == pitcher, stand == stance)
+        relevant.data.2 <- filter(pitches.model.data, pitcher_name == other_pitcher, stand == stance)
+      }
+      
+      model.pitcher <- kknn(relevant.data$end ~ ., train = relevant.data[-c(5:8, 10)], test = pitch, k = sqrt(nrow(relevant.data)))
+      model.all <- kknn(relevant.data.2$end ~ ., train = relevant.data.2[-c(5:8, 10)], test = pitch, k = sqrt(nrow(relevant.data.2)))
+      
+      pitcher.probs <- as.numeric(model.pitcher$prob)
+      all.probs <- as.numeric(model.all$prob)
+      outcomeLevels <- levels(pitches.clean$end)
+      both.probs <- data.frame(outcomeLevels, pitcher.probs, all.probs)
+      
+      outcomes <- melt(both.probs)
+      all <- outcomes %>% filter(variable == "all.probs")
+      selected.pitcher <- outcomes %>% filter(variable == "pitcher.probs")
+      
+      selected.pitcher$other <- selected.pitcher$outcomeLevels
+      all$other <- "League Average"
+      outcomes <- rbind(selected.pitcher, all)
+      
+      outcomes$outcomeLevels <- factor(all$outcomeLevels,levels(all$outcomeLevels)[c(10, 2, 4, 1, 5, 8, 3, 7, 9, 11, 6)])
+      selected.pitcher$outcomeLevels <- factor(selected.pitcher$outcomeLevels,levels(selected.pitcher$outcomeLevels)[c(10, 2, 4, 1, 5, 8, 3, 7, 9, 11, 6)])
+      
+      ggplot(outcomes, aes(x = outcomeLevels, y = value, fill = other)) + theme_bw() + theme(axis.text.x = element_text(angle = 30, hjust = 1), plot.title = element_text(size = 22, face = "bold"), axis.text = element_text(size = 13), axis.title = element_text(size = 19)) + geom_bar(colour = "black", stat = "identity", position = "dodge") + scale_fill_manual(values = c("yellow1", "green3", "red3", "green3", "blue3", "red3", "blue3", "blue3", "red3", "green3", "red3", "grey75")) + ylab("Probability") + xlab("") + ggtitle(title) + guides(fill = FALSE)
+    }
+    else{
+      
+      relevant.data <- filter(pitches.model.data, pitcher_name == pitcher, stand == stance)
+      model <- kknn(relevant.data$end ~ ., train = relevant.data[-c(5:8)], test = pitch, k = sqrt(nrow(relevant.data)))
+      m2 <- data.frame(model$prob)
+      outcomes <- melt(m2)
+      outcomes$variable <- factor(outcomes$variable,levels(outcomes$variable)[c(11, 2, 6,1, 4, 9, 5, 8, 10, 3, 7)])
+      ggplot(outcomes, aes(x = variable, y = value)) + theme_bw() + theme(axis.text.x = element_text(angle = 30, hjust = 1), plot.title = element_text(size = 22, face = "bold"), axis.text = element_text(size = 13), axis.title = element_text(size = 19)) + guides(fill = FALSE) + scale_fill_manual(values = c("green3", "green3", "green3","yellow1", "blue3", "blue3", "blue3", "blue3","red3", "red3", "red3")) + geom_bar(stat = "identity", colour = "black", aes(fill = variable)) + ylab("Probability") + xlab("") + ggtitle(title)
+    }
+  } 
+  else {
+    relevant.data <- filter(pitches.model.data, stand == stance)
+    model <- kknn(relevant.data$end ~ ., train = relevant.data[-c(5:8)], test = pitch, k = sqrt(nrow(relevant.data)))
+    m2 <- data.frame(model$prob)
+    outcomes <- melt(m2)
+    outcomes$variable <- factor(outcomes$variable,levels(outcomes$variable)[c(11, 2, 6,1, 4, 9, 5, 8, 10, 3, 7)])
+    ggplot(outcomes, aes(x = variable, y = value)) + theme_bw()+ theme(axis.text.x = element_text(angle = 30, hjust = 1), plot.title = element_text(size = 22, face = "bold"), axis.text = element_text(size = 13), axis.title = element_text(size = 19)) + guides(fill = FALSE) + scale_fill_manual(values = c("green3", "green3", "green3","yellow1", "blue3", "blue3", "blue3", "blue3","red3", "red3", "red3")) + geom_bar(stat = "identity", colour = "black", aes(fill = variable)) + ylab("Probability") + xlab("") + ggtitle(title)
+  }
+}
+
+
   
   
+  
+  
+  
+  
+    
