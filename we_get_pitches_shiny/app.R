@@ -12,6 +12,7 @@ library(caret)
 library(kknn)
 library(reshape2)
 load("data/app.Rdata")
+load("data/coordinates.RData")
 
 # Define UI for application
 ui <- shinyUI(fluidPage(theme = shinytheme("spacelab"),
@@ -25,8 +26,8 @@ ui <- shinyUI(fluidPage(theme = shinytheme("spacelab"),
                         # Sidebar with a slider input for number of bins 
                         sidebarLayout(
                           sidebarPanel(
-                            selectInput("pitcher_name", "Select Pitcher:", c("All", levels(pitches.outcomes$pitcher_name))),
-                            selectInput("other_pitcher", "Select Pitcher for Comparison:", c("None", "All", levels(pitches.outcomes$pitcher_name))),
+                            selectInput("pitcher_name", "Select Pitcher:", c("All", levels(pitches.clean$pitcher_name))),
+                            selectInput("other_pitcher", "Select Pitcher for Comparison:", c("None", "All", levels(pitches.clean$pitcher_name))),
                             ###############################################################################
                             ## buttons to select default pitch
                             actionButton('fastball', 'four-seam fastball'),
@@ -84,7 +85,8 @@ ui <- shinyUI(fluidPage(theme = shinytheme("spacelab"),
                           
                           mainPanel(
                             plotOutput("pitch_plot"),
-                            plotOutput("pitch_plot_2")
+                            plotOutput("pitch_plot_2"),
+                            plotOutput("pitch_plot_3")
                           )
                         )
 ))
@@ -222,7 +224,7 @@ server <- shinyServer(function(input, output, session) {
   ## Default pitch values
   
   observeEvent(input$pitcher_name, {
-    pitcher.df <- pitches.outcomes %>% dplyr::filter(pitcher_name == input$pitcher_name)
+    pitcher.df <- pitches.clean %>% dplyr::filter(pitcher_name == input$pitcher_name)
     levels(pitcher.df$pitch_type) <- c("change", "curve", "eephus", "cutter", "fastball", "sinker", "twoSeam", "knuckleCurve", "knuckleball", "slider")
     pitches.all <- levels(pitcher.df$pitch_type)
     # These next two lines get it so that the levels of the pitch type have only the 
@@ -809,7 +811,7 @@ server <- shinyServer(function(input, output, session) {
   
   ## Plot output
   output$pitch_plot <- renderPlot({
-    the.big.guy.pitcher.(v$data, input$pitcher_name, input$other_pitcher, "R")
+    the.big.guy.pitcher(v$data, input$pitcher_name, input$other_pitcher, "R")
   })
   
   output$pitch_plot_2 <- renderPlot({
@@ -817,11 +819,7 @@ server <- shinyServer(function(input, output, session) {
   })
   
   output$pitch_plot_3 <- renderPlot({
-    the.big.guy.pitcher.(input$pitcher_name, input$other_pitcher, "R")
-  })
-  
-  output$pitch_plot_4 <- renderPlot({
-    the.big.guy.pitcher(input$pitcher_name, input$other_pitcher, "L")
+    ggplot(coordinates, aes(x = x_vals, y = y_vals)) + geom_point(aes(color = strikeZone)) + scale_color_manual(values = c("black", "white"))
   })
   
   

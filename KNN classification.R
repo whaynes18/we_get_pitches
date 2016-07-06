@@ -9,7 +9,7 @@ library(reshape2)
 
 
 # Load data (from pitches and the API)
-dat <- scrape(start = "2016-06-18", end = "2016-06-19")
+dat <- scrape(start = "2016-06-17", end = "2016-06-18")
 
 pitchFX <- plyr::join(dat$atbat, dat$pitch, by = c("num", "url"), type = "inner")
 

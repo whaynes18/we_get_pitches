@@ -7,7 +7,7 @@ library(caret)
 library(kknn)
 
 # Load data (from pitches and the API)
-dat <- scrape(start = "2016-04-01", end = "2016-04-30")
+dat <- scrape(start = "2016-04-01", end = "2016-04-03")
 pitchFX <- plyr::join(dat$atbat, dat$pitch, by = c("num", "url"), type = "inner")
 
 # Clean data
@@ -126,7 +126,7 @@ final$Pitch_type <- lapply(final$`Pitcher and Type`, function(n) {str_split(n, '
 
 ### FINDING ZONES AND USING X,Y VALUES IN OUR MODEL
 
-pitches.model.data <- pitches.outcomes %>% dplyr::select(start_speed, break_length, spin_rate, pfx_z, x, y, stand, pitcher_name, end)
+pitches.model.data <- pitches.clean %>% dplyr::select(start_speed, break_length, spin_rate, pfx_z, x, y, pitch_type, stand, pitcher_name, end)
 pitches.model.data <- na.omit(pitches.model.data)
 
 scale.train.object <- preProcess(pitches.model.data[,1:4])
@@ -134,7 +134,7 @@ pitches.model.data[,1:4] <- scale(pitches.model.data[,1:4])
 pitches.model.data <- na.omit(pitches.model.data)
 
 pitches.outcomes$zone <- as.factor(pitches.outcomes$zone)
-ggplot(pitches.outcomes, aes(x = x, y = y)) + geom_point(aes(color = zone)) + scale_x_continuous(limits = c(80, 154)) + scale_y_continuous(limits = c(127,215)) + scale_color_manual(values = c("blue","yellow","blue","yellow","blue","yellow", "blue","yellow", "blue", "grey52","grey14","grey14","grey52")) + 
+ggplot(pitches.outcomes, aes(x = x, y = y)) + geom_point(aes(color = zone)) + scale_x_continuous(limits = c(50, 200)) + scale_y_continuous(limits = c(90,265)) + scale_color_manual(values = c("blue","yellow","blue","yellow","blue","yellow", "blue","yellow", "blue", "grey52","grey14","grey14","grey52")) + 
   geom_vline(xintercept = c(90, 108, 126, 144), color = "red", size = 2) + geom_hline(yintercept = c(195,179,163,147), size = 2, color = "red") + geom_vline(xintercept = 117, size = 1.5, color = "white") + geom_hline(yintercept = 171, size = 1.5, color = "white")
 
 # this graph shows me that the center of the strike zone is at the coordinates (117,171). Now i will make radial coordiantes based on this center
@@ -154,9 +154,7 @@ ggplot(pitches.outcomes2, aes(x = x, y = y)) + scale_x_continuous(limits = c(78,
 
 pitch.example <- pitches.outcomes[16,]  
   
-create_radii <- function(pitch){
-  x_value <- pitch$x
-  y_value <- pitch$y
+create_radii <- function(x_value, y_value){
   pitches.model.data$radius <- sqrt((pitches.model.data$x - x_value) ^ 2 + (pitches.model.data$y - y_value) ^ 2)
   pitches.model.data
 }
@@ -168,7 +166,6 @@ ggplot(pop, aes(x = x, y = y)) + scale_x_continuous(limits = c(78, 156)) + scale
   geom_vline(xintercept = c(90, 144), color = "red") + geom_hline(yintercept = c(195, 147), color = "red") + geom_vline(xintercept = 117, size = 1.5, color = "white") + geom_hline(yintercept = 171, size = 1.5, color = "white")
 
 # nice ^
-
 
 # make pitches either in the strikeZone or not in the strikeZone
 ncols <- length(pitches.clean)
@@ -206,22 +203,27 @@ for (i in 1:nrow(coordinates)){
     coordinates[i, ncols + 1] = 0
   }
 }
+
 finalColName <- paste("V", (ncols + 1), sep = "")
 coordinates <- coordinates  %>% dplyr::rename(strikeZone = V3)
 coordinates$strikeZone <- as.factor(coordinates$strikeZone)
 ggplot(coordinates, aes(x = x_vals, y = y_vals)) + geom_point(aes(color = strikeZone)) + scale_color_manual(values = c("black", "white"))
-#SAVE COORDINATES AS AN RDATA FILE
+
+
 # also, do more exploring. Earlier in this file, i tried to see if location within a zone
 # matttered for the pitch, and it did not. but, we can check this again. see if location within
-# the radial zone affects the outcome of the pitch
+# the radial zone affects the outcome of the pitch.
+# note: make a new data frame with a list of pitchers who have more than n amount of pitches.
+# use this for the drop down list of pitchers. do not use this for the actual data, because
+# we still want all the pitches possible to be used in our model.
+relevant.pitchers <- ((table(pitches.outcomes$pitcher_name)) > 100) #make 100 a better number, like, say, a quartile. dont want it so arbitrary
+relevant.pitchers <- data.frame(relevant.pitchers)
 
 # try the big guy using radius, rather than zone.
 the.big.guy.pitcher.radii <- function(pitcher = "All", other_pitcher = "None", stance, pitch) {
   
   # create radius values from the given pitch (its x and y values), then filter to only values
   # with a radius of less than 8
-  
-  # WAIT: THIS MAY CAUSE AN ERROR BECAUSE THE X AND Y VALUES ARE SCALED? OR MAYBE THEY ARENT? IDK
   pitches.model.data <- create_radii(pitch) %>% dplyr::filter(radius < 8)
   
   if (stance == "R"){
@@ -242,8 +244,8 @@ the.big.guy.pitcher.radii <- function(pitcher = "All", other_pitcher = "None", s
         relevant.data.2 <- filter(pitches.model.data, pitcher_name == other_pitcher, stand == stance)
       }
       
-      model.pitcher <- kknn(relevant.data$end ~ ., train = relevant.data[-c(5:8, 10)], test = pitch, k = sqrt(nrow(relevant.data)))
-      model.all <- kknn(relevant.data.2$end ~ ., train = relevant.data.2[-c(5:8, 10)], test = pitch, k = sqrt(nrow(relevant.data.2)))
+      model.pitcher <- kknn(relevant.data$end ~ ., train = relevant.data[-c(5:10)], test = pitch, k = sqrt(nrow(relevant.data)))
+      model.all <- kknn(relevant.data.2$end ~ ., train = relevant.data.2[-c(5:10)], test = pitch, k = sqrt(nrow(relevant.data.2)))
       
       pitcher.probs <- as.numeric(model.pitcher$prob)
       all.probs <- as.numeric(model.all$prob)
@@ -261,31 +263,40 @@ the.big.guy.pitcher.radii <- function(pitcher = "All", other_pitcher = "None", s
       outcomes$outcomeLevels <- factor(all$outcomeLevels,levels(all$outcomeLevels)[c(10, 2, 4, 1, 5, 8, 3, 7, 9, 11, 6)])
       selected.pitcher$outcomeLevels <- factor(selected.pitcher$outcomeLevels,levels(selected.pitcher$outcomeLevels)[c(10, 2, 4, 1, 5, 8, 3, 7, 9, 11, 6)])
       
-      ggplot(outcomes, aes(x = outcomeLevels, y = value, fill = other)) + theme_bw() + theme(axis.text.x = element_text(angle = 30, hjust = 1), plot.title = element_text(size = 22, face = "bold"), axis.text = element_text(size = 13), axis.title = element_text(size = 19)) + geom_bar(colour = "black", stat = "identity", position = "dodge") + scale_fill_manual(values = c("yellow1", "green3", "red3", "green3", "blue3", "red3", "blue3", "blue3", "red3", "green3", "red3", "grey75")) + ylab("Probability") + xlab("") + ggtitle(title) + guides(fill = FALSE)
+      ggplot(outcomes, aes(x = outcomeLevels, y = value, fill = other)) + theme_bw() + 
+        theme(axis.text.x = element_text(angle = 30, hjust = 1), plot.title = element_text(size = 22, face = "bold"), axis.text = element_text(size = 13), axis.title = element_text(size = 19)) + 
+        geom_bar(colour = "black", stat = "identity", position = "dodge") + scale_fill_manual(values = c("yellow1", "green3", "red3", "green3", "blue3", "red3", "blue3", "blue3", "red3", "green3", "red3", "grey75")) + 
+        ylab("Probability") + xlab("") + ggtitle(title) + guides(fill = FALSE)
     }
     else{
       
       relevant.data <- filter(pitches.model.data, pitcher_name == pitcher, stand == stance)
-      model <- kknn(relevant.data$end ~ ., train = relevant.data[-c(5:8)], test = pitch, k = sqrt(nrow(relevant.data)))
+      model <- kknn(relevant.data$end ~ ., train = relevant.data[-c(5:10)], test = pitch, k = sqrt(nrow(relevant.data)))
       m2 <- data.frame(model$prob)
       outcomes <- melt(m2)
       outcomes$variable <- factor(outcomes$variable,levels(outcomes$variable)[c(11, 2, 6,1, 4, 9, 5, 8, 10, 3, 7)])
-      ggplot(outcomes, aes(x = variable, y = value)) + theme_bw() + theme(axis.text.x = element_text(angle = 30, hjust = 1), plot.title = element_text(size = 22, face = "bold"), axis.text = element_text(size = 13), axis.title = element_text(size = 19)) + guides(fill = FALSE) + scale_fill_manual(values = c("green3", "green3", "green3","yellow1", "blue3", "blue3", "blue3", "blue3","red3", "red3", "red3")) + geom_bar(stat = "identity", colour = "black", aes(fill = variable)) + ylab("Probability") + xlab("") + ggtitle(title)
+      
+      ggplot(outcomes, aes(x = variable, y = value)) + theme_bw() + theme(axis.text.x = element_text(angle = 30, hjust = 1), plot.title = element_text(size = 22, face = "bold"), axis.text = element_text(size = 13), axis.title = element_text(size = 19)) + 
+        guides(fill = FALSE) + scale_fill_manual(values = c("green3", "green3", "green3","yellow1", "blue3", "blue3", "blue3", "blue3","red3", "red3", "red3")) + 
+        geom_bar(stat = "identity", colour = "black", aes(fill = variable)) + ylab("Probability") + xlab("") + ggtitle(title)
     }
   } 
   else {
+    
     relevant.data <- filter(pitches.model.data, stand == stance)
-    model <- kknn(relevant.data$end ~ ., train = relevant.data[-c(5:8)], test = pitch, k = sqrt(nrow(relevant.data)))
+    model <- kknn(relevant.data$end ~ ., train = relevant.data[-c(5:10)], test = pitch, k = sqrt(nrow(relevant.data)))
     m2 <- data.frame(model$prob)
     outcomes <- melt(m2)
     outcomes$variable <- factor(outcomes$variable,levels(outcomes$variable)[c(11, 2, 6,1, 4, 9, 5, 8, 10, 3, 7)])
-    ggplot(outcomes, aes(x = variable, y = value)) + theme_bw()+ theme(axis.text.x = element_text(angle = 30, hjust = 1), plot.title = element_text(size = 22, face = "bold"), axis.text = element_text(size = 13), axis.title = element_text(size = 19)) + guides(fill = FALSE) + scale_fill_manual(values = c("green3", "green3", "green3","yellow1", "blue3", "blue3", "blue3", "blue3","red3", "red3", "red3")) + geom_bar(stat = "identity", colour = "black", aes(fill = variable)) + ylab("Probability") + xlab("") + ggtitle(title)
+    
+    ggplot(outcomes, aes(x = variable, y = value)) + theme_bw()+ theme(axis.text.x = element_text(angle = 30, hjust = 1), plot.title = element_text(size = 22, face = "bold"), axis.text = element_text(size = 13), axis.title = element_text(size = 19)) + 
+      guides(fill = FALSE) + scale_fill_manual(values = c("green3", "green3", "green3","yellow1", "blue3", "blue3", "blue3", "blue3","red3", "red3", "red3")) + 
+      geom_bar(stat = "identity", colour = "black", aes(fill = variable)) + ylab("Probability") + xlab("") + ggtitle(title)
   }
 }
 
 
-  
-  
+
   
   
   
