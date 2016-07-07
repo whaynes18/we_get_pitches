@@ -51,16 +51,19 @@ pitches.outcomes$end <- as.factor(pitches.outcomes$end)
 pitches.clean <- pitches.outcomes
 
 pitches.test.features <- pitches.clean  %>% select(start_speed, end_speed, pfx_x, pfx_z, break_angle, break_length, break_y, spin_dir, spin_rate, end)
+pitches.test.features.all <- pitches.clean  %>% select(x, y, start_speed, end_speed, pfx_x, pfx_z, break_angle, break_length, break_y, spin_dir, spin_rate, vx0, vy0, vz0, ax, ay, az, x0, y0, z0, px, pz, end)
+
+pitches.test.features.noPos <- pitches.clean  %>% select(start_speed, end_speed, pfx_x, pfx_z, break_angle, break_length, break_y, spin_dir, spin_rate, vx0, vy0, vz0, ax, ay, az, end)
 
 TRAINCONTROL <- trainControl(method = "cv", repeats = 3, verboseIter = F, summaryFunction = multiClassSummary)
 
 # scale the data
-ends <- pitches.test.features$end
-pitches.test.features2 <- scale(pitches.test.features[,1:9])
+ends <- pitches.test.features.all$end
+pitches.test.features2 <- scale(pitches.test.features.all[,1:(length(pitches.test.features.all) - 1)])
 pitches.test.features2 <- data.frame(pitches.test.features2)
 pitches.test.features2$end <- ends
 
-pitch.rpart <- train(end ~ ., data = pitches.test.features, method = "rpart", control = rpart.control(cp = 0.03, minsplit = 10, minbucket = 3), trControl = TRAINCONTROL)
+pitch.rpart <- train(end ~ ., data = pitches.test.features2, method = "rpart", control = rpart.control(cp = 0.03, minsplit = 10, minbucket = 3), trControl = TRAINCONTROL)
 varImp(pitch.rpart)
 
 # The four most important factors are pfx_z, break_length, start_speed, spin_rate).
@@ -134,13 +137,27 @@ pitches.model.data[,1:4] <- scale(pitches.model.data[,1:4])
 pitches.model.data <- na.omit(pitches.model.data)
 
 pitches.outcomes$zone <- as.factor(pitches.outcomes$zone)
-ggplot(pitches.outcomes, aes(x = x, y = y)) + geom_point(aes(color = zone)) + scale_x_continuous(limits = c(50, 200)) + scale_y_continuous(limits = c(90,265)) + scale_color_manual(values = c("blue","yellow","blue","yellow","blue","yellow", "blue","yellow", "blue", "grey52","grey14","grey14","grey52")) + 
+ggplot(pitches.outcomes, aes(x = x, y = y)) + geom_point(aes(color = zone)) + scale_x_continuous(limits = c(50, 200)) + scale_y_continuous(limits = c(90,265)) + scale_color_manual(values = c("blue","yellow","blue","yellow","blue","yellow", "blue","yellow", "blue", "grey52","grey14","grey14","grey52")) 
   geom_vline(xintercept = c(90, 108, 126, 144), color = "red", size = 2) + geom_hline(yintercept = c(195,179,163,147), size = 2, color = "red") + geom_vline(xintercept = 117, size = 1.5, color = "white") + geom_hline(yintercept = 171, size = 1.5, color = "white")
+
+ggplot(pitches.outcomes, aes(x = px, y = pz)) + geom_point(aes(color = zone)) + scale_x_continuous(limits = c(-1, 1)) + scale_y_continuous(limits = c(1,4.5)) + scale_color_manual(values = c("blue","yellow","blue","yellow","blue","yellow", "blue","yellow", "blue", "grey52","grey14","grey14","grey52"))+ 
+  geom_vline(xintercept = c(-.7, .7), color = "red", size = 2) + geom_hline(yintercept = c(1.6, 3.6), size = 2, color = "red") + geom_vline(xintercept = 0, size = 1.5, color = "white") + geom_hline(yintercept = 2.5, size = 1.5, color = "white")
+
 
 # this graph shows me that the center of the strike zone is at the coordinates (117,171). Now i will make radial coordiantes based on this center
 # so, this means that a strike zone is 18 units wide and 16 units high. I am going to use this estimation
 # to CREATE THE RADIUS FOR THE CIRCLE THAT WILL CLOSE OFF DATA for the further model. I am going to 
 # make the radius equal to 16. This will capture all the height in an artificial zone.
+
+
+ggplot(pitches.outcomes, aes(x = px, y = pz)) + geom_point(aes(color = zone)) + scale_x_continuous(limits = c(-1, 1)) + scale_y_continuous(limits = c(1,4.5)) + scale_color_manual(values = c("blue","yellow","blue","yellow","blue","yellow", "blue","yellow", "blue", "grey52","grey14","grey14","grey52"))+ 
+  geom_vline(xintercept = c(-.7, (-0.7 + (2 * .7 / 3)), .7), color = "red", size = 2) + geom_hline(yintercept = c(1.5, (2.5 + 1/3), 3.5), size = 2, color = "red") + geom_vline(xintercept = 0, size = 1.5, color = "white") + geom_hline(yintercept = 2.5, size = 1.5, color = "white")
+
+# we should actually use px and pz rather than x and y.... so now, the center is roughly at (0, 2.5), and
+# the bounds are at (-.7, .7) and (1.5, 3.5). Furthermore, the height of one zone is roughly (3.5 - (2.5 + 1/3)) = 2/3.
+# So, we want the radius of our circle to be (2/3)/2 = 2/6 = 1/3.
+# OKAY, SO I DON'T WANT TO CHANGE EVERYTHING NOW, BETTER TO JUST MAKE THE MARKDOWN, BUT CHANGE
+# THIS IN THE FUTURE
 
 pitches.outcomes$radius = sqrt((pitches.outcomes$x - 117)^2 + (pitches.outcomes$y - 171)^2)
 tail(sort(pitches.outcomes$radius), n = 30)
@@ -168,15 +185,7 @@ ggplot(pop, aes(x = x, y = y)) + scale_x_continuous(limits = c(78, 156)) + scale
 # nice ^
 
 # make pitches either in the strikeZone or not in the strikeZone
-ncols <- length(pitches.clean)
-for (i in 1:nrow(pitches.clean)){
-  if ((pitches.clean[i,12] < 144) & (pitches.clean[i,12] > 90) & (pitches.clean[i,13] > 147) & (pitches.clean[i,13] < 195)){
-    pitches.clean[i, ncols + 1] = 1
-  }
-  else{
-    pitches.clean[i, ncols + 1] = 0
-  }
-}
+
 finalColName <- paste("V", (ncols + 1), sep = "")
 pitches.clean <- pitches.clean  %>% dplyr::rename(strikeZone = finalColName)
 pitches.clean$strikeZone <- as.factor(pitches.clean$strikeZone)
@@ -203,7 +212,6 @@ for (i in 1:nrow(coordinates)){
     coordinates[i, ncols + 1] = 0
   }
 }
-
 finalColName <- paste("V", (ncols + 1), sep = "")
 coordinates <- coordinates  %>% dplyr::rename(strikeZone = V3)
 coordinates$strikeZone <- as.factor(coordinates$strikeZone)
@@ -216,8 +224,17 @@ ggplot(coordinates, aes(x = x_vals, y = y_vals)) + geom_point(aes(color = strike
 # note: make a new data frame with a list of pitchers who have more than n amount of pitches.
 # use this for the drop down list of pitchers. do not use this for the actual data, because
 # we still want all the pitches possible to be used in our model.
-relevant.pitchers <- ((table(pitches.outcomes$pitcher_name)) > 100) #make 100 a better number, like, say, a quartile. dont want it so arbitrary
-relevant.pitchers <- data.frame(relevant.pitchers)
+
+# create a data frame with the pitcher name and whether or not they have thrown 300 pitches
+relevant.pitchers <- ((table(pitches.outcomes$pitcher_name)) > 300) 
+relevant.pitchers<- adply(relevant.pitchers, 1)
+names(relevant.pitchers) <- c("Pitcher_name", "Relevancy")
+relevant <- relevant.pitchers[,2]
+# this is a list of all the pitchers who have pitched more than 300 pitches
+relevant.names <- sort(as.character(relevant.pitchers[relevant, 1]))
+
+
+
 
 # try the big guy using radius, rather than zone.
 the.big.guy.pitcher.radii <- function(pitcher = "All", other_pitcher = "None", stance, pitch) {

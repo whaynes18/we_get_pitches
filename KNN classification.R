@@ -60,8 +60,6 @@ pitches.outcomes$end <- as.factor(pitches.outcomes$end)
 levels(pitches.outcomes$end) <- c("Ball", "Called Strike", "XB Hit", "Groundout", "Groundout", "Fly Out", "Groundout","Foul","Groundout","Groundout","Home Run","Lineout","Pop Out","Fly Out","Fly Out", "Single","Swinging Strike","XB Hit")
 pitches.outcomes$end <- as.factor(pitches.outcomes$end)
 
-# Select our relevant columns, split into train and test
-
 # Season2016Final data frame goes up to here, so start running the code here.
 
 load("season2016Final.RData")
@@ -78,12 +76,7 @@ scale.train.object <- preProcess(pitches.model.data[,1:4])
 pitches.model.data[,1:4] <- scale(pitches.model.data[,1:4])
 pitches.model.data <- na.omit(pitches.model.data)
 
-
-
-
 #### ONLY RUN UP TO THIS POINT TO RUN SCRIPT
-
-
 
 index <- createDataPartition(y = pitches.model.data$end, p=0.8)[[1]]
 pitches.train <- pitches.model.data[index,]

@@ -11,9 +11,8 @@ library(cluster)
 library(caret)
 library(kknn)
 library(reshape2)
+load("data/app.Rdata")
 load("data/coordinates.RData")
-load("data/app3.Rdata")
-
 
 # Define UI for application
 ui <- shinyUI(fluidPage(theme = shinytheme("spacelab"),
@@ -48,27 +47,48 @@ ui <- shinyUI(fluidPage(theme = shinytheme("spacelab"),
                             uiOutput("break_slider"),
                             uiOutput("pfx_z_slider"),
                             uiOutput("spin_rate_slider"),
-                            
+
                             # create sliders in order to track the stats of the comparison pitcher. We do not 
                             # actually want to see these sliders so we will hide them away.
                             hidden(sliderInput(inputId = "otherSpeed", "Other Pitch Speed (mph):", min = 50, max = 100, value = 90)),
                             hidden(sliderInput(inputId = "otherBreak_length", "Break Length (in):",min = 0,max = 15,value = 6)),
                             hidden(sliderInput(inputId = "otherPfx_z", "Vertical Change (in):",min = -12,max = 15,value = 6)),
                             hidden(sliderInput(inputId = "otherSpin_rate","Spin Rate (rpm):", min = 0, max = 3000, value = 1500)),
-                            fluidRow(column(1, offset = 4, actionButton("all_zones", "All Zones"))),
                             
-                            plotOutput("pitch_plot_3", click = "plot_click")
-                          ),  
+                            ###############################################################################
+                            ## Buttons for zones
+                            fluidRow(column(1, h4("Zone:"))),
+                            fluidRow(column(1, offset = 3, actionButton("all_zones", "All Zones"))),
+                            fluidRow(
+                              column(1, offset = 1, actionButton("zone_11", "11")),
+                              column(2, offset = 4, actionButton("zone_12", "12"))),
+                            fluidRow(
+                              column(1, offset = 2),
+                              actionButton("zone_1", "1"),
+                              actionButton("zone_2", "2"),
+                              actionButton("zone_3", "3")),
+                            fluidRow(
+                              column(1, offset = 2),
+                              actionButton("zone_4", "4"),
+                              actionButton("zone_5", "5"),
+                              actionButton("zone_6", "6")),
+                            fluidRow(
+                              column(1, offset = 2),
+                              actionButton("zone_7", "7"),
+                              actionButton("zone_8", "8"),
+                              actionButton("zone_9", "9")),
+                            fluidRow(
+                              column(1, offset = 1, actionButton("zone_13", "13")),
+                              column(2, offset = 4, actionButton("zone_14", "14")))
+                            ###############################################################################
+                          ),
                           
                           mainPanel(
-                            tabsetPanel(
-                              tabPanel("Pitch Outcome Distributions", plotOutput("pitch_plot"), plotOutput("pitch_plot_2")),
-                              tabPanel("Summary Statistics", verbatimTextOutput("accuracy"))
-                            )
-                            
+                            plotOutput("pitch_plot"),
+                            plotOutput("pitch_plot_2"),
+                            plotOutput("pitch_plot_3")
                           )
                         )
-                        
 ))
 server <- shinyServer(function(input, output, session) {
   
@@ -76,11 +96,14 @@ server <- shinyServer(function(input, output, session) {
   #what you put into output object should be a render function
   #put braces around code ({ }) to pass code as unified block
   #observeEvent(input$click, {code})
-
+  
+  # Load Relevant Data
+  
+  
   
   ##################################################################
- 
-  
+  ## Reactive values for zone and pitch characteristics
+  v <- reactiveValues(data = c(1:9, 11:14))
   
   output$speed_slider <- renderUI({
     if (input$pitcher_name == "All") {
@@ -126,7 +149,6 @@ server <- shinyServer(function(input, output, session) {
     sliderInput(inputId = "spin_rate", "Spin Rate (rpm)", min = round(min.spin.rate,1), max = round(max.spin.rate,1), step = round((max.spin.rate - min.spin.rate)/30, 1), value = 1500, round = TRUE)
   })
   
-  zones <- reactiveValues(data = 0)
   speed_new <- reactiveValues(data = 90)
   pfx_z_new <- reactiveValues(data = 6)
   breaklength_new <- reactiveValues(data = 6)
@@ -135,25 +157,71 @@ server <- shinyServer(function(input, output, session) {
   pfx_z_new2 <- reactiveValues(data = 6)
   breaklength_new2 <- reactiveValues(data = 6)
   spin_new2 <- reactiveValues(data = 1800)
-  click_point_x <- reactiveValues(data = NULL)
-  click_point_y <- reactiveValues(data = NULL)
-  
   
   
   ##################################################################
-
-  ########################################################  
-  ## Default pitch values
   
-  observeEvent(input$plot_click, {
-    zones$data <- 0
-    click_point_x$data <- input$plot_click$x
-    click_point_y$data <- input$plot_click$y
+  ##################################################################
+  ## Toggle zone selection
+  observeEvent(input$zone_1, {
+    v$data <- 1
+  })
+  
+  observeEvent(input$zone_2, {
+    v$data <- 2
+  })
+  
+  observeEvent(input$zone_3, {
+    v$data <- 3
+  })
+  
+  observeEvent(input$zone_4, {
+    v$data <- 4
+  })  
+  
+  observeEvent(input$zone_5, {
+    v$data <- 5
+  })
+  
+  observeEvent(input$zone_6, {
+    v$data <- 6
+  })  
+  
+  observeEvent(input$zone_7, {
+    v$data <- 7
+  })
+  
+  observeEvent(input$zone_8, {
+    v$data <- 8 
+  })  
+  
+  observeEvent(input$zone_9, {
+    v$data <- 9
+  })
+  
+  observeEvent(input$zone_11, {
+    v$data <- 11
+  })  
+  
+  observeEvent(input$zone_12, {
+    v$data <- 12
+  })
+  
+  observeEvent(input$zone_13, {
+    v$data <- 13
+  })  
+  
+  observeEvent(input$zone_14, {
+    v$data <- 14
   })
   
   observeEvent(input$all_zones, {
-    zones$data <- 1
+    v$data <- 0
   })
+  
+  
+  ########################################################  
+  ## Default pitch values
   
   observeEvent(input$pitcher_name, {
     pitcher.df <- pitches.clean %>% dplyr::filter(pitcher_name == input$pitcher_name)
@@ -185,7 +253,7 @@ server <- shinyServer(function(input, output, session) {
   })
   
   observeEvent(input$fastball, {
-    
+
     if (input$pitcher_name == "All"){
       fastball <- pitches.clean %>% dplyr::filter(pitch_type == "FF")
     }
@@ -545,8 +613,7 @@ server <- shinyServer(function(input, output, session) {
     updateSliderInput(session, "otherPfx_z", value = eephusOtherPfx)
     updateSliderInput(session, "otherSpin_rate", value = eephusOtherSpin)
   })
-  
-  
+ 
   
   ########################################################  
   ## Change pitch characteristics with sliders
@@ -583,45 +650,16 @@ server <- shinyServer(function(input, output, session) {
   })
   
   ########################################################  
-  
-  # hold the values of the scaled objects (or something like that)
-  #scale.train.object <- preProcess(pitches.model.data.2[,1:4])
-  
-  coordinate <- reactive({
-    data.frame("x_val" = click_point_x$data, "y_val" = click_point_y$data)
-  })
-  
+ 
   test.pitch <- reactive({predict(scale.train.object, data.frame("start_speed" = speed_new$data, "pfx_z" = pfx_z_new$data, "break_length" = breaklength_new$data,
                                                                  "spin_rate" = spin_new$data))})
   
   test.pitch2 <- reactive({predict(scale.train.object, data.frame("start_speed" = speed_new2$data, "pfx_z" = pfx_z_new2$data, "break_length" = breaklength_new2$data,
-                                                                  "spin_rate" = spin_new2$data))})
-  
-
+                                                                 "spin_rate" = spin_new2$data))})
   ########################################################  
   
-  create_radii <- function(x, y, x_mid, y_mid){
-    value <- sqrt((x - x_mid)^2 + (y - y_mid)^2)
-    value
-  }
-  
-  calculate_distances <- function(start_speed, pfx_z, break_length, spin_rate){
-    dist.df <- data.frame(start_speed, break_length, spin_rate, pfx_z)
-    cmon <- test.pitch()
-    pop <- rbind(dist.df, cmon)
-    value <- dist(pop)
-    value[1]
-  }
-
-  the.big.guy.pitcher.radii <- function(pitcher = "All", other_pitcher = "None", stance) {
-
-    # set up the coordinate system based on the reactive function
-    coords <- coordinate()
-    x_val <- coords$x_val
-    y_val <- coords$y_val
-
+  the.big.guy.pitcher <- function(zone_id, pitcher = "All", other_pitcher = "None", stance) {
     
-    # set up the title for the graph
     if (stance == "R"){
       title = "Comparison Pitch Outcome Distribution - Righty Hitters"
     }
@@ -631,43 +669,33 @@ server <- shinyServer(function(input, output, session) {
     
     if (pitcher != "All") {
       if (other_pitcher != "None") {
-        if (other_pitcher == "All"){
-          relevant.data <- filter(pitches.model.data.2, pitcher_name == pitcher, stand == stance)
-          relevant.data.2 <- filter(pitches.model.data.2, pitcher_name != pitcher, stand == stance)
+        if (zone_id == 0){
+          if (other_pitcher == "All"){
+            relevant.data <- filter(pitches.model.data, pitcher_name == pitcher, stand == stance)
+            relevant.data.2 <- filter(pitches.model.data, pitcher_name != pitcher, stand == stance)
+          }
+          else{
+            relevant.data <- filter(pitches.model.data, pitcher_name == pitcher, stand == stance)
+            relevant.data.2 <- filter(pitches.model.data, pitcher_name == other_pitcher, stand == stance)
+          }
         }
         else{
-          relevant.data <- filter(pitches.model.data.2, pitcher_name == pitcher, stand == stance)
-          relevant.data.2 <- filter(pitches.model.data.2, pitcher_name == other_pitcher, stand == stance)
+          if (other_pitcher == "All"){
+            relevant.data <- filter(pitches.model.data, pitcher_name == pitcher, zone == zone_id, stand == stance)
+            relevant.data.2 <- filter(pitches.model.data, pitcher_name != pitcher, zone == zone_id, stand == stance)
+          }
+          else{
+            relevant.data <- filter(pitches.model.data, pitcher_name == pitcher, zone == zone_id, stand == stance)
+            relevant.data.2 <- filter(pitches.model.data, pitcher_name == other_pitcher, zone == zone_id, stand == stance)
+          }
         }
         
-        # caculate radius only if the "All Zones" button is not selected
-        if (zones$data == 0 & !(is.null(click_point_x$data))){
-          relevant.data$radius <- create_radii(relevant.data$x, relevant.data$y, x_val, y_val)
-          relevant.data <- relevant.data %>% dplyr::filter(radius < 8)
-          
-          relevant.data.2$radius <- create_radii(relevant.data.2$x, relevant.data.2$y, x_val, y_val)
-          relevant.data.2 <- relevant.data.2 %>% dplyr::filter(radius < 8)
-          
-        }
-
-        model.pitcher <- kknn(relevant.data$end ~ ., train = relevant.data[c(1:4, 9)], test = test.pitch(), k = sqrt(nrow(relevant.data)))
-        model.all <- kknn(relevant.data.2$end ~ ., train = relevant.data.2[c(1:4, 9)], test = test.pitch2(), k = sqrt(nrow(relevant.data.2)))
-        
-        # Get the points that are used in the model, then calculate the average euclidean distance
-        # between these points and the actual pitch.
-        used.points <- model$C
-        used <- relevant.data[used.points,]
-        used$euc_distances <- calculate_distances(used$start_speed, used$pfx_z, used$break_length, used$spin_rate)
-        average_euc <- sum(used$euc_distances) / nrow(used)
-        
-        used.points.2 <- model$C
-        used.2 <- relevant.data[used.points.2,]
-        used.2$euc_distances <- calculate_distances(used.2$start_speed, used.2$pfx_z, used.2$break_length, used.2$spin_rate)
-        average_euc.2 <- sum(used.2$euc_distances) / nrow(used.2)
+        model.pitcher <- kknn(relevant.data$end ~ ., train = relevant.data[-c(5:8)], test = test.pitch(), k = sqrt(nrow(relevant.data)))
+        model.all <- kknn(relevant.data.2$end ~ ., train = relevant.data.2[-c(5:8)], test = test.pitch2(), k = sqrt(nrow(relevant.data.2)))
         
         pitcher.probs <- as.numeric(model.pitcher$prob)
         all.probs <- as.numeric(model.all$prob)
-        outcomeLevels <- levels(pitches.model.data.2$end)
+        outcomeLevels <- levels(pitches.clean$end)
         both.probs <- data.frame(outcomeLevels, pitcher.probs, all.probs)
         
         outcomes <- melt(both.probs)
@@ -681,174 +709,122 @@ server <- shinyServer(function(input, output, session) {
         outcomes$outcomeLevels <- factor(all$outcomeLevels,levels(all$outcomeLevels)[c(10, 2, 4, 1, 5, 8, 3, 7, 9, 11, 6)])
         selected.pitcher$outcomeLevels <- factor(selected.pitcher$outcomeLevels,levels(selected.pitcher$outcomeLevels)[c(10, 2, 4, 1, 5, 8, 3, 7, 9, 11, 6)])
         
-        
-        
-        plot <- ggplot(outcomes, aes(x = outcomeLevels, y = value, fill = other)) + theme_bw() + 
-          theme(axis.text.x = element_text(angle = 30, hjust = 1), plot.title = element_text(size = 22, face = "bold"), axis.text = element_text(size = 13), axis.title = element_text(size = 19)) + 
-          geom_bar(colour = "black", stat = "identity", position = "dodge") + scale_fill_manual(values = c("yellow1", "green3", "red3", "green3", "blue3", "red3", "blue3", "blue3", "red3", "green3", "red3", "grey75")) + 
-          ylab("Probability") + xlab("") + ggtitle(title) + guides(fill = FALSE)
-        
-        k_value <- sqrt(nrow(relevant.data))
-        k_value_2 <- sqrt(nrow(relevant.data.2))
-        
-        return_vals <- list(plot, k_value, k_value_2, average_euc, average_euc.2)
-        return_vals
+        ggplot(outcomes, aes(x = outcomeLevels, y = value, fill = other)) + theme_bw() + theme(axis.text.x = element_text(angle = 30, hjust = 1), plot.title = element_text(size = 22, face = "bold"), axis.text = element_text(size = 13), axis.title = element_text(size = 19)) + geom_bar(colour = "black", stat = "identity", position = "dodge") + scale_fill_manual(values = c("yellow1", "green3", "red3", "green3", "blue3", "red3", "blue3", "blue3", "red3", "green3", "red3", "grey75")) + ylab("Probability") + xlab("") + ggtitle(title) + guides(fill = FALSE)
       }
       else{
-        
-        relevant.data <- filter(pitches.model.data.2, pitcher_name == pitcher, stand == stance)
-        
-        # this loop will calculate radii for every point in the data set
-        if (zones$data == 0 & !(is.null(click_point_x$data))){
-          relevant.data$radius <- create_radii(relevant.data$x, relevant.data$y, x_val, y_val)
-          relevant.data <- relevant.data %>% dplyr::filter(radius < 8)
+        if (zone_id == 0){
+          relevant.data <- filter(pitches.model.data, pitcher_name == pitcher, stand == stance)
         }
-        
-        # k can just equal the number of points in relevant.data now because we already filtered it down
-        model <- kknn(relevant.data$end ~ ., train = relevant.data[c(1:4, 9)], test = test.pitch(), k = sqrt(nrow(relevant.data)))
-        
-        used.points <- model$C
-        used <- relevant.data[used.points,]
-        used$euc_distances <- calculate_distances(used$start_speed, used$pfx_z, used$break_length, used$spin_rate)
-        average_euc <- sum(used$euc_distances) / nrow(used)
-        
+        else{
+          relevant.data <- filter(pitches.model.data, pitcher_name == pitcher, zone == zone_id, stand == stance)
+        }
+        model <- kknn(relevant.data$end ~ ., train = relevant.data[-c(5:8)], test = test.pitch(), k = sqrt(nrow(relevant.data)))
         m2 <- data.frame(model$prob)
         outcomes <- melt(m2)
         outcomes$variable <- factor(outcomes$variable,levels(outcomes$variable)[c(11, 2, 6,1, 4, 9, 5, 8, 10, 3, 7)])
-        
-        
-        plot <- ggplot(outcomes, aes(x = variable, y = value)) + geom_bar(stat = "identity", colour = "black", aes(fill = variable)) +
-          theme_bw() + theme(axis.text.x = element_text(angle = 30, hjust = 1), plot.title = element_text(size = 22, face = "bold"), axis.text = element_text(size = 13), axis.title = element_text(size = 19)) +
-          guides(fill = FALSE) + scale_fill_manual(values = c("green3", "green3", "green3","yellow1", "blue3", "blue3", "blue3", "blue3","red3", "red3", "red3")) + 
-          ylab("Probability") + xlab("") + ggtitle(title)
-        k_value <- sqrt(nrow(relevant.data))
-        
-        return_vals <- list(plot, k_value, average_euc)
-        return_vals
+        ggplot(outcomes, aes(x = variable, y = value)) + theme_bw() + theme(axis.text.x = element_text(angle = 30, hjust = 1), plot.title = element_text(size = 22, face = "bold"), axis.text = element_text(size = 13), axis.title = element_text(size = 19)) + guides(fill = FALSE) + scale_fill_manual(values = c("green3", "green3", "green3","yellow1", "blue3", "blue3", "blue3", "blue3","red3", "red3", "red3")) + geom_bar(stat = "identity", colour = "black", aes(fill = variable)) + ylab("Probability") + xlab("") + ggtitle(title)
       }
     } 
     else {
-      
-      relevant.data <- filter(pitches.model.data.2, stand == stance)
-      if (zones$data == 0 & !(is.null(click_point_x$data))){
-        relevant.data$radius <- create_radii(relevant.data$x, relevant.data$y, x_val, y_val)
-        relevant.data <- relevant.data %>% dplyr::filter(radius < 8)
+      if (zone_id == 0){
+        relevant.data <- filter(pitches.model.data, stand == stance)
       }
-      
-
-      model <- kknn(relevant.data$end ~ ., train = relevant.data[c(1:4, 9)], test = test.pitch(), k = sqrt(nrow(relevant.data)))
-      
-      used.points <- model$C
-      used <- relevant.data[used.points,]
-      used$euc_distances <- calculate_distances(used$start_speed, used$pfx_z, used$break_length, used$spin_rate)
-      average_euc <- sum(used$euc_distances) / nrow(used)
-      
+      else{
+        relevant.data <- filter(pitches.model.data, zone == zone_id, stand == stance)
+      }
+      model <- kknn(relevant.data$end ~ ., train = relevant.data[-c(5:8)], test = test.pitch(), k = sqrt(nrow(relevant.data)))
       m2 <- data.frame(model$prob)
       outcomes <- melt(m2)
       outcomes$variable <- factor(outcomes$variable,levels(outcomes$variable)[c(11, 2, 6,1, 4, 9, 5, 8, 10, 3, 7)])
-      
-      
-      plot <- ggplot(outcomes, aes(x = variable, y = value)) + geom_bar(stat = "identity", colour = "black", aes(fill = variable))+
-        theme_bw() + theme(axis.text.x = element_text(angle = 30, hjust = 1), plot.title = element_text(size = 22, face = "bold"), axis.text = element_text(size = 13), axis.title = element_text(size = 19)) +
-        guides(fill = FALSE) + scale_fill_manual(values = c("green3", "green3", "green3","yellow1", "blue3", "blue3", "blue3", "blue3","red3", "red3", "red3")) + 
-        ylab("Probability") + xlab("") + ggtitle(title)
-      k_value <- sqrt(nrow(relevant.data))
-
-      return_vals <- list(plot, k_value, average_euc)
-      return_vals
+      ggplot(outcomes, aes(x = variable, y = value)) + theme_bw()+ theme(axis.text.x = element_text(angle = 30, hjust = 1), plot.title = element_text(size = 22, face = "bold"), axis.text = element_text(size = 13), axis.title = element_text(size = 19)) + guides(fill = FALSE) + scale_fill_manual(values = c("green3", "green3", "green3","yellow1", "blue3", "blue3", "blue3", "blue3","red3", "red3", "red3")) + geom_bar(stat = "identity", colour = "black", aes(fill = variable)) + ylab("Probability") + xlab("") + ggtitle(title)
     }
   }
   
-  strike.zone.plot <- function(){
+  the.big.guy.pitcher.radii <- function(pitcher = "All", other_pitcher = "None", stance, pitch) {
     
-    # set up the coordinate system based on the reactive function
-    coords <- coordinate()
-    x_val <- coords$x_val
-    y_val <- coords$y_val
+    # create radius values from the given pitch (its x and y values), then filter to only values
+    # with a radius of less than 16
+    pitches.model.data <- create_radii(pitch) %>% dplyr::filter(radius < 16)
     
-    angle <- seq(-pi, pi, length = 50)
-    df <- data.frame(x = x_val + 8*sin(angle), y = y_val + 8*cos(angle))
-    
-    if (is.null(click_point_x$data) | (zones$data == 1)){
-      ggplot(NULL, aes(x = x, y = y))  + geom_point(data = coordinates, aes(color = strikeZone)) + scale_color_manual(values = c("gray77", "royalblue2")) +
-        theme(axis.line=element_blank(), plot.margin = unit( c(0,0,0,0) , "in" ), axis.text.x=element_blank(), axis.text.y=element_blank(), axis.ticks=element_blank(),
-              axis.title.x=element_blank(), axis.title.y=element_blank(), legend.position="none", panel.background=element_blank(),
-              panel.border=element_blank(), panel.grid.major=element_blank(), panel.grid.minor=element_blank(), plot.background=element_rect(fill = "grey96", color = "grey96"), title = element_text(size = 28)) +
-        geom_segment(aes(x = 90, y = 147, xend = 90, yend = 194)) + geom_segment(aes(x = 108, y = 147, xend = 108, yend = 194)) +
-        geom_segment(aes(x = 126, y = 147, xend = 126, yend = 194)) + geom_segment(aes(x = 143, y = 147, xend = 143, yend = 194)) + 
-        geom_segment(aes(x = 90, y = 147, xend = 143, yend = 147)) + geom_segment(aes(x = 90, y = 163, xend = 143, yend = 163)) + 
-        geom_segment(aes(x = 90, y = 179, xend = 143, yend = 179)) + geom_segment(aes(x = 90, y = 194, xend = 143, yend = 194)) +
-        geom_segment(aes(x = max(coordinates$x), y = min(coordinates$y), xend = max(coordinates$x), yend = max(coordinates$y))) + geom_segment(aes(x = min(coordinates$x), y = min(coordinates$y), xend = min(coordinates$x), yend = max(coordinates$y))) + 
-        geom_segment(aes(x = min(coordinates$x), y = max(coordinates$y), xend = max(coordinates$x), yend = max(coordinates$y))) + geom_segment(aes(x = min(coordinates$x), y = min(coordinates$y), xend = max(coordinates$x), yend = min(coordinates$y)))
+    if (stance == "R"){
+      title = "Comparison Pitch Outcome Distribution - Righty Hitters"
     }
     else{
-      ggplot(NULL, aes(x = x, y = y))  + geom_point(data = coordinates, aes(color = strikeZone)) + scale_color_manual(values = c("gray77", "royalblue2")) +
-        theme(axis.line=element_blank(), plot.margin = unit( c(0,0,0,0) , "in" ), axis.text.x=element_blank(), axis.text.y=element_blank(), axis.ticks=element_blank(),
-              axis.title.x=element_blank(), axis.title.y=element_blank(), legend.position="none", panel.background=element_blank(),
-              panel.border=element_blank(), panel.grid.major=element_blank(), panel.grid.minor=element_blank(), plot.background=element_rect(fill = "grey96", color = "grey96"), title = element_text(size = 28)) +
-        geom_segment(aes(x = 90, y = 147, xend = 90, yend = 194)) + geom_segment(aes(x = 108, y = 147, xend = 108, yend = 194)) +
-        geom_segment(aes(x = 126, y = 147, xend = 126, yend = 194)) + geom_segment(aes(x = 143, y = 147, xend = 143, yend = 194)) + 
-        geom_segment(aes(x = 90, y = 147, xend = 143, yend = 147)) + geom_segment(aes(x = 90, y = 163, xend = 143, yend = 163)) + 
-        geom_segment(aes(x = 90, y = 179, xend = 143, yend = 179)) + geom_segment(aes(x = 90, y = 194, xend = 143, yend = 194)) +
-        geom_segment(aes(x = max(coordinates$x), y = min(coordinates$y), xend = max(coordinates$x), yend = max(coordinates$y))) + geom_segment(aes(x = min(coordinates$x), y = min(coordinates$y), xend = min(coordinates$x), yend = max(coordinates$y))) + 
-        geom_segment(aes(x = min(coordinates$x), y = max(coordinates$y), xend = max(coordinates$x), yend = max(coordinates$y))) + geom_segment(aes(x = min(coordinates$x), y = min(coordinates$y), xend = max(coordinates$x), yend = min(coordinates$y))) +
-        geom_point(aes(x = click_point_x$data, y = click_point_y$data), color = "red", size = 2.5) + geom_polygon(aes(x = x, y = y), data = df, color = "red", fill = NA)
+      title = "Comparison Pitch Outcome Distribution - Lefty Hitters"
+    }
+    
+    if (pitcher != "All") {
+      if (other_pitcher != "None") {
+        if (other_pitcher == "All"){
+          relevant.data <- filter(pitches.model.data, pitcher_name == pitcher, stand == stance)
+          relevant.data.2 <- filter(pitches.model.data, pitcher_name != pitcher, stand == stance)
+        }
+        else{
+          relevant.data <- filter(pitches.model.data, pitcher_name == pitcher, stand == stance)
+          relevant.data.2 <- filter(pitches.model.data, pitcher_name == other_pitcher, stand == stance)
+        }
+        
+        model.pitcher <- kknn(relevant.data$end ~ ., train = relevant.data[-c(5:8, 10)], test = pitch, k = sqrt(nrow(relevant.data)))
+        model.all <- kknn(relevant.data.2$end ~ ., train = relevant.data.2[-c(5:8, 10)], test = pitch, k = sqrt(nrow(relevant.data.2)))
+        
+        pitcher.probs <- as.numeric(model.pitcher$prob)
+        all.probs <- as.numeric(model.all$prob)
+        outcomeLevels <- levels(pitches.clean$end)
+        both.probs <- data.frame(outcomeLevels, pitcher.probs, all.probs)
+        
+        outcomes <- melt(both.probs)
+        all <- outcomes %>% filter(variable == "all.probs")
+        selected.pitcher <- outcomes %>% filter(variable == "pitcher.probs")
+        
+        selected.pitcher$other <- selected.pitcher$outcomeLevels
+        all$other <- "League Average"
+        outcomes <- rbind(selected.pitcher, all)
+        
+        outcomes$outcomeLevels <- factor(all$outcomeLevels,levels(all$outcomeLevels)[c(10, 2, 4, 1, 5, 8, 3, 7, 9, 11, 6)])
+        selected.pitcher$outcomeLevels <- factor(selected.pitcher$outcomeLevels,levels(selected.pitcher$outcomeLevels)[c(10, 2, 4, 1, 5, 8, 3, 7, 9, 11, 6)])
+        
+        ggplot(outcomes, aes(x = outcomeLevels, y = value, fill = other)) + theme_bw() + theme(axis.text.x = element_text(angle = 30, hjust = 1), plot.title = element_text(size = 22, face = "bold"), axis.text = element_text(size = 13), axis.title = element_text(size = 19)) + geom_bar(colour = "black", stat = "identity", position = "dodge") + scale_fill_manual(values = c("yellow1", "green3", "red3", "green3", "blue3", "red3", "blue3", "blue3", "red3", "green3", "red3", "grey75")) + ylab("Probability") + xlab("") + ggtitle(title) + guides(fill = FALSE)
+      }
+      else{
+        
+        relevant.data <- filter(pitches.model.data, pitcher_name == pitcher, stand == stance)
+        model <- kknn(relevant.data$end ~ ., train = relevant.data[-c(5:8)], test = pitch, k = sqrt(nrow(relevant.data)))
+        m2 <- data.frame(model$prob)
+        outcomes <- melt(m2)
+        outcomes$variable <- factor(outcomes$variable,levels(outcomes$variable)[c(11, 2, 6,1, 4, 9, 5, 8, 10, 3, 7)])
+        ggplot(outcomes, aes(x = variable, y = value)) + theme_bw() + theme(axis.text.x = element_text(angle = 30, hjust = 1), plot.title = element_text(size = 22, face = "bold"), axis.text = element_text(size = 13), axis.title = element_text(size = 19)) + guides(fill = FALSE) + scale_fill_manual(values = c("green3", "green3", "green3","yellow1", "blue3", "blue3", "blue3", "blue3","red3", "red3", "red3")) + geom_bar(stat = "identity", colour = "black", aes(fill = variable)) + ylab("Probability") + xlab("") + ggtitle(title)
+      }
+    } 
+    else {
+      relevant.data <- filter(pitches.model.data, stand == stance)
+      model <- kknn(relevant.data$end ~ ., train = relevant.data[-c(5:8)], test = pitch, k = sqrt(nrow(relevant.data)))
+      m2 <- data.frame(model$prob)
+      outcomes <- melt(m2)
+      outcomes$variable <- factor(outcomes$variable,levels(outcomes$variable)[c(11, 2, 6,1, 4, 9, 5, 8, 10, 3, 7)])
+      ggplot(outcomes, aes(x = variable, y = value)) + theme_bw()+ theme(axis.text.x = element_text(angle = 30, hjust = 1), plot.title = element_text(size = 22, face = "bold"), axis.text = element_text(size = 13), axis.title = element_text(size = 19)) + guides(fill = FALSE) + scale_fill_manual(values = c("green3", "green3", "green3","yellow1", "blue3", "blue3", "blue3", "blue3","red3", "red3", "red3")) + geom_bar(stat = "identity", colour = "black", aes(fill = variable)) + ylab("Probability") + xlab("") + ggtitle(title)
     }
   }
-
+  
+  
   ########################################################  
   
   
   ## Plot output
-  
   output$pitch_plot <- renderPlot({
-    
-    list.pitch <- the.big.guy.pitcher.radii(input$pitcher_name, input$other_pitcher, "R")
-    list.pitch[[1]]
+    the.big.guy.pitcher(v$data, input$pitcher_name, input$other_pitcher, "R")
   })
   
   output$pitch_plot_2 <- renderPlot({
-    list.pitch <- the.big.guy.pitcher.radii(input$pitcher_name, input$other_pitcher, "L")
-    list.pitch[[1]]
+    the.big.guy.pitcher(v$data, input$pitcher_name, input$other_pitcher, "L")
   })
-
+  
   output$pitch_plot_3 <- renderPlot({
-    strike.zone.plot()
+    ggplot(coordinates, aes(x = x_vals, y = y_vals)) + geom_point(aes(color = strikeZone)) + scale_color_manual(values = c("black", "white"))
   })
   
-  output$plot_near_points <- renderTable({
-    res <- nearPoints(coordinates, input$plot_click, "x", "y", maxpoints = 1)
-  })
   
-  output$accuracy <- renderPrint({
-    if (input$other_pitcher == "None"){
-      list.pitch <- the.big.guy.pitcher.radii(input$pitcher_name, input$other_pitcher, "L")
-      str1 <- paste("X Coordinate: ", as.character(click_point_x$data), sep = "")
-      str2 <- paste("Y Coordinate: ", as.character(click_point_y$data), sep = "")
-      str3 <- paste("K-Value for kknn Model: ", as.character(list.pitch[[2]]), sep ="")
-      str4 <- paste("Average Euclidean Distance from Pitch: ", as.character(list.pitch[[3]]), sep ="")
-      str5 <- paste("Pitcher Name: ", as.character(input$pitcher_name), sep = "")
-      str6 <- paste("Pitcher Comparison Name: ", as.character(input$other_pitcher), sep ="")
-      cat(paste(str5, str6, sep = '\n'))
-      cat('\n')
-      cat(paste(str3, str4, sep = '\n'))
-      cat('\n')
-      cat(paste(str1, str2, sep = '\n'))
-
-      
-    }
-    else{
-      list.pitch <- the.big.guy.pitcher.radii(input$pitcher_name, input$other_pitcher, "L")
-      str1 <- paste("X Coordinate: ", as.character(click_point_x$data), sep = "")
-      str2 <- paste("Y Coordinate: ", as.character(click_point_y$data), sep = "")
-      str3 <- paste("K-Value for kknn Model for First Pitcher: ", as.character(list.pitch[[2]]), sep ="")
-      str4 <- paste("K-Value for kknn Model for Other Pitcher: ", as.character(list.pitch[[3]]), sep = "")
-      str5 <- paste("Average Euclidean Distance from Pitch: ", as.character(list.pitch[[4]]), sep ="")
-      str6 <- paste("Average Euclidean Distance from Pitch: ", as.character(list.pitch[[5]]), sep ="")
-      str6
-    }
-    
-  })
+  #renderPrint consider for printing out the statistics 
+  #reactive builds a reactive object that can be used to store a reactive value in
   
 })
 # Run the application 
